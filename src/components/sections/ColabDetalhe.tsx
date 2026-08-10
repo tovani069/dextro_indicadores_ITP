@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import ChartCanvas from "@/components/charts/ChartCanvas";
+import { linhaVertical } from "@/components/charts/plugins";
 import { CHARGE_TARGET, MESES, MES_ABBR, TS_CAT_COLORS } from "@/lib/constants";
 import {
   chargBg,
@@ -276,9 +277,11 @@ export default function ColabDetalhe({ colab, rows, disponiveis, capPorMes, onCl
                           },
                         ],
                       },
+                      plugins: [linhaVertical],
                       options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        interaction: { mode: "index", intersect: false },
                         plugins: {
                           legend: { labels: { color: "#9096B0", font: { size: 10 }, boxWidth: 10 } },
                           datalabels: {

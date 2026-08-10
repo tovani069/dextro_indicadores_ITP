@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import ChartCanvas from "@/components/charts/ChartCanvas";
+import { linhaVertical } from "@/components/charts/plugins";
 import Gauge from "@/components/charts/Gauge";
 import RankBars from "@/components/charts/RankBars";
 import FilterDropdown, { type FilterOption } from "@/components/FilterDropdown";
@@ -672,9 +673,11 @@ export default function Timesheet() {
               return {
                 type: "line",
                 data: { labels: serie.map((s) => s.label), datasets },
+                plugins: [linhaVertical],
                 options: {
                   responsive: true,
                   maintainAspectRatio: false,
+                  interaction: { mode: "index", intersect: false },
                   plugins: {
                     legend: { labels: { color: "#9096B0", font: { size: 10 }, boxWidth: 10 } },
                     datalabels: { display: false },

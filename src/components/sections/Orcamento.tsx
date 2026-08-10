@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import ChartCanvas from "@/components/charts/ChartCanvas";
+import { linhaVertical } from "@/components/charts/plugins";
 import FilterDropdown from "@/components/FilterDropdown";
 import FiltrosAtivos, { type Pill } from "@/components/FiltrosAtivos";
 import KpiCard from "@/components/KpiCard";
@@ -435,9 +436,11 @@ export default function Orcamento() {
                         },
                       ],
                     },
+                    plugins: [linhaVertical],
                     options: {
                       responsive: true,
                       maintainAspectRatio: false,
+                      interaction: { mode: "index", intersect: false },
                       plugins: {
                         legend: { display: false },
                         datalabels: { display: false },
