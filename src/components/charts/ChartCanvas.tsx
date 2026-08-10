@@ -6,6 +6,14 @@ import ChartDataLabels from "chartjs-plugin-datalabels";
 
 Chart.register(ChartDataLabels);
 
+// Mesma linguagem de movimento do resto do dashboard: curto, com saída suave.
+Chart.defaults.animation = {
+  ...Chart.defaults.animation,
+  duration: 480,
+  easing: "easeOutQuart",
+};
+Chart.defaults.transitions.active.animation.duration = 220;
+
 type Props = {
   /**
    * Monta a configuração do gráfico. Recebe o contexto 2D para permitir
@@ -15,14 +23,20 @@ type Props = {
     ctx: CanvasRenderingContext2D,
     canvas: HTMLCanvasElement,
   ) => ChartConfiguration;
-  /** Quando mudam, o gráfico é destruído e recriado. */
+  /** Quando mudam, o gráfico recebe os novos dados. */
   deps?: DependencyList;
   className?: string;
 };
 
-/** Canvas do Chart.js com ciclo de vida amarrado ao componente React. */
+/**
+ * Canvas do Chart.js com ciclo de vida amarrado ao componente React.
+ *
+ * Quando as dependências mudam, os dados são aplicados ao gráfico existente
+ * para que a transição seja animada; só recriamos o gráfico se o tipo mudar.
+ */
 export default function ChartCanvas({ build, deps = [], className }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const chartRef = useRef<Chart | null>(null);
   const buildRef = useRef(build);
   buildRef.current = build;
 
@@ -31,10 +45,32 @@ export default function ChartCanvas({ build, deps = [], className }: Props) {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const chart = new Chart(canvas, buildRef.current(ctx, canvas));
-    return () => chart.destroy();
+
+    const cfg = buildRef.current(ctx, canvas);
+    const atual = chartRef.current;
+
+    // `config` do Chart.js aceita configurações sem `type` no topo, daí a leitura defensiva.
+    const tipoAtual = (atual?.config as { type?: string } | undefined)?.type;
+    if (atual && tipoAtual === cfg.type) {
+      atual.data = cfg.data;
+      if (cfg.options) atual.options = cfg.options;
+      atual.update();
+      return;
+    }
+
+    atual?.destroy();
+    chartRef.current = new Chart(canvas, cfg);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
+
+  // Destrói apenas quando o componente sai da tela.
+  useEffect(
+    () => () => {
+      chartRef.current?.destroy();
+      chartRef.current = null;
+    },
+    [],
+  );
 
   return <canvas ref={ref} className={className} />;
 }

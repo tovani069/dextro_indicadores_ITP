@@ -335,6 +335,9 @@ export default function Timesheet() {
     }
   }
 
+  /** Muda a cada novo recorte; usada para reanimar as listas. */
+  const chaveFiltro = useMemo(() => JSON.stringify(f), [f]);
+
   const catOptions: FilterOption[] = allCats.map((c) => ({
     value: c,
     label: rotuloCat(c),
@@ -489,26 +492,30 @@ export default function Timesheet() {
         {temCapacidade && (
           <KpiCard
             label="Horas Disponíveis"
-            value={fmtMil(horasDisponiveis)}
+            numero={horasDisponiveis}
+            formatar={fmtMil}
             sub={capacidadeEstimada ? `dias úteis × ${JORNADA_PADRAO}h` : "capacidade importada"}
             grad="linear-gradient(90deg,#6C3FFF,#4F8EFF)"
           />
         )}
         <KpiCard
           label="Horas Preenchidas"
-          value={fmtMil(horasPreenchidas)}
+          numero={horasPreenchidas}
+          formatar={fmtMil}
           sub={rows.length.toLocaleString("pt-BR") + " registros"}
           grad="linear-gradient(90deg,#4F8EFF,#20C0FF)"
         />
         <KpiCard
           label="Horas Faturáveis"
-          value={fmtMil(horasFaturaveis)}
+          numero={horasFaturaveis}
+          formatar={fmtMil}
           sub="em clientes/projetos"
           grad="linear-gradient(90deg,#00D4A0,#20C0FF)"
         />
         <KpiCard
           label="Non-Billable"
-          value={fmtMil(nonBill)}
+          numero={nonBill}
+          formatar={fmtMil}
           sub="internas ITP"
           grad="linear-gradient(90deg,#FF5C6A,#FF8C00)"
         />
@@ -855,7 +862,7 @@ export default function Timesheet() {
                 <th style={{ width: "9%" }}>Total</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody key={chaveFiltro} className="anim-surge">
               {matriz.linhas.map((l) => (
                 <tr key={l.nome}>
                   <td
@@ -900,6 +907,8 @@ export default function Timesheet() {
         Detalhamento Individual
       </div>
       <div
+        key={chaveFiltro}
+        className="anim-surge"
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fill,minmax(320px,1fr))",
@@ -943,7 +952,7 @@ export default function Timesheet() {
               <th>Status</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody key={chaveFiltro} className="anim-surge">
             {rank.map((r, i) => {
               const c = r.chargeability;
               const col = chargColor(c);
