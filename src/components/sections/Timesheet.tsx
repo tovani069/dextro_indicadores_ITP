@@ -545,13 +545,6 @@ export default function Timesheet() {
           sub="em clientes/projetos"
           grad="linear-gradient(90deg,#00D4A0,#20C0FF)"
         />
-        <KpiCard
-          label="Non-Billable"
-          numero={nonBill}
-          formatar={fmtMil}
-          sub="internas ITP"
-          grad="linear-gradient(90deg,#FF5C6A,#FF8C00)"
-        />
         {temCapacidade && (
           <div className="kpi-card">
             <div className="kpi-accent" style={{ background: "linear-gradient(90deg,#6C3FFF,#4F8EFF)" }} />
