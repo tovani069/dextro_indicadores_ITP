@@ -29,10 +29,13 @@ export default function Dashboard() {
           onOpenDataMenu={setDataMenu}
         />
         <div className="main">
-          {setor === "plano" && <PlanoAcao />}
-          {setor === "indicadores" && <Indicadores />}
-          {setor === "orcamento" && <Orcamento />}
-          {setor === "timesheet" && <Timesheet />}
+          {/* A key remonta o bloco a cada troca de aba, disparando a animação de entrada. */}
+          <div key={setor} className="anim-sobe">
+            {setor === "plano" && <PlanoAcao />}
+            {setor === "indicadores" && <Indicadores />}
+            {setor === "orcamento" && <Orcamento />}
+            {setor === "timesheet" && <Timesheet />}
+          </div>
         </div>
       </div>
       <Footer />
