@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+
+import { useDropdown } from "@/lib/use-dropdown";
 
 export type FilterOption = { value: string; label: string; color?: string };
 
@@ -31,40 +33,13 @@ export default function FilterDropdown({
   searchable = false,
   wide = false,
 }: Props) {
-  const [open, setOpen] = useState(false);
-  // O menu continua montado durante a animação de saída.
-  const [montado, setMontado] = useState(false);
+  const { aberto, montado, wrapRef, alternar } = useDropdown();
   const [query, setQuery] = useState("");
-  const wrapRef = useRef<HTMLDivElement>(null);
 
+  // A busca não deve sobreviver ao fechamento do menu.
   useEffect(() => {
-    if (!open) return;
-    function onDocClick(e: MouseEvent) {
-      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
-    }
-    function onEsc(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("click", onDocClick);
-    document.addEventListener("keydown", onEsc);
-    return () => {
-      document.removeEventListener("click", onDocClick);
-      document.removeEventListener("keydown", onEsc);
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (open) {
-      setMontado(true);
-      return;
-    }
-    if (!montado) return;
-    const t = setTimeout(() => {
-      setMontado(false);
-      setQuery("");
-    }, 170); // acompanha a duração de .anim-recolhe
-    return () => clearTimeout(t);
-  }, [open, montado]);
+    if (!aberto) setQuery("");
+  }, [aberto]);
 
   const hasVal =
     mode === "single" ? selected.length > 0 && selected[0] !== "" : selected.length > 0;
@@ -89,9 +64,9 @@ export default function FilterDropdown({
     <div className="ts-dd-wrap" ref={wrapRef}>
       <button
         className={
-          "ts-dd-btn" + (open ? " ts-dd-active" : "") + (hasVal ? " ts-dd-has-val" : "")
+          "ts-dd-btn" + (aberto ? " ts-dd-active" : "") + (hasVal ? " ts-dd-has-val" : "")
         }
-        onClick={() => setOpen((v) => !v)}
+        onClick={alternar}
       >
         <span className="ts-dd-label">{btnLabel}</span>
         <span className="ts-dd-arrow">▾</span>
@@ -99,7 +74,9 @@ export default function FilterDropdown({
       {montado && (
         <div
           className={
-            "ts-dd-menu" + (wide ? " ts-dd-wide" : "") + (open ? " anim-sobe" : " anim-recolhe")
+            "ts-dd-menu" +
+            (wide ? " ts-dd-wide" : "") +
+            (aberto ? " anim-sobe" : " anim-recolhe")
           }
           role="listbox"
         >
@@ -116,7 +93,7 @@ export default function FilterDropdown({
               key={o.value}
               className={"ts-dd-item" + (selected.includes(o.value) ? " ts-dd-selected" : "")}
               // cascata curta, só nos primeiros itens — listas longas não podem demorar
-              style={{ animationDelay: open ? `${Math.min(i, 8) * 22}ms` : undefined }}
+              style={{ animationDelay: aberto ? `${Math.min(i, 8) * 22}ms` : undefined }}
               onClick={() => onToggle(o.value)}
             >
               {o.color && (

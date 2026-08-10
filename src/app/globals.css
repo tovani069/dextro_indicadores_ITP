@@ -352,3 +352,30 @@ table.matriz tr.matriz-total td{border-top:1px solid var(--border2);border-botto
   .anim-cartao{animation:none}
   .colab-card:hover{transform:none}
 }
+
+/* Lista suspensa dos filtros aplicados */
+.ts-dd-badge{
+  font-size:10px;font-family:"IBM Plex Mono",monospace;line-height:1;
+  padding:2px 6px;border-radius:9px;
+  background:#4F8EFF22;color:#4F8EFF;font-weight:600;
+}
+.ts-dd-item.filtro-ativo{
+  gap:8px;padding-right:8px;cursor:default;
+}
+.ts-dd-item.filtro-ativo:hover{background:transparent}
+.filtro-grupo{
+  font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;
+  min-width:52px;flex-shrink:0;
+}
+.filtro-valor{
+  flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  color:var(--text);
+}
+.filtro-remover{
+  flex-shrink:0;width:20px;height:20px;border-radius:6px;
+  border:none;background:transparent;color:var(--text3);
+  font-size:15px;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .18s cubic-bezier(.22,1,.36,1),color .18s cubic-bezier(.22,1,.36,1);
+}
+.filtro-remover:hover{background:var(--bg4);color:#FF5C6A}

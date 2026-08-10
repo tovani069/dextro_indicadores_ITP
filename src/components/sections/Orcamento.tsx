@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 
 import ChartCanvas from "@/components/charts/ChartCanvas";
 import FilterDropdown from "@/components/FilterDropdown";
-import FilterPills, { type Pill } from "@/components/FilterPills";
+import FiltrosAtivos, { type Pill } from "@/components/FiltrosAtivos";
 import KpiCard from "@/components/KpiCard";
 import {
   MES_ABBR,
@@ -213,7 +213,7 @@ export default function Orcamento() {
         <button className="btn-link" onClick={limpar}>
           ✕ Limpar
         </button>
-        <FilterPills pills={pills} onRemove={removePill} />
+        <FiltrosAtivos pills={pills} onRemove={removePill} />
       </div>
 
       {/* KPIs */}

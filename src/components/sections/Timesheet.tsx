@@ -6,7 +6,7 @@ import ChartCanvas from "@/components/charts/ChartCanvas";
 import Gauge from "@/components/charts/Gauge";
 import RankBars from "@/components/charts/RankBars";
 import FilterDropdown, { type FilterOption } from "@/components/FilterDropdown";
-import FilterPills, { type Pill } from "@/components/FilterPills";
+import FiltrosAtivos, { type Pill } from "@/components/FiltrosAtivos";
 import KpiCard from "@/components/KpiCard";
 import {
   CHARGE_TARGET,
@@ -158,19 +158,30 @@ export default function Timesheet() {
     [timesheet, f],
   );
 
+  /** Time e status de cada colaborador, para filtrar a capacidade. */
+  const infoColab = useMemo(() => {
+    const m = new Map<string, { time?: string; st?: string }>();
+    timesheet.forEach((r) => {
+      if (!m.has(r.c)) m.set(r.c, { time: r.time, st: r.st });
+    });
+    return m;
+  }, [timesheet]);
+
   // A capacidade só responde aos filtros de pessoa e de tempo — cliente e
   // categoria são atributos do lançamento, não da disponibilidade do colaborador.
   const capacidadeFiltrada = useMemo(
     () =>
       capacidadeBase.filter((c) => {
         if (f.colabs.length && !f.colabs.includes(c.c)) return false;
+        if (f.times.length && !f.times.includes(infoColab.get(c.c)?.time ?? "")) return false;
+        if (f.sts.length && !f.sts.includes(infoColab.get(c.c)?.st ?? "")) return false;
         if (f.anos.length && !f.anos.includes(String(c.a))) return false;
         if (f.meses.length && !f.meses.includes(MESES[c.mo - 1])) return false;
         if (f.de && `${c.a}-${String(c.mo).padStart(2, "0")}-28` < f.de) return false;
         if (f.ate && `${c.a}-${String(c.mo).padStart(2, "0")}-01` > f.ate) return false;
         return true;
       }),
-    [capacidadeBase, f],
+    [capacidadeBase, infoColab, f],
   );
 
   function toggle(grupo: GrupoLista, value: string) {
@@ -477,7 +488,7 @@ export default function Timesheet() {
         <button className="btn-link" onClick={() => setF(FILTROS_VAZIOS)}>
           ✕ Limpar
         </button>
-        <FilterPills pills={pills} onRemove={removePill} />
+        <FiltrosAtivos pills={pills} onRemove={removePill} />
       </div>
 
       {/* KPIs — os sete cabem em uma linha só; quebram apenas em telas estreitas */}
