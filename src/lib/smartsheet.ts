@@ -1,5 +1,5 @@
 import { ehFaturavel } from "./timesheet";
-import type { CapacidadeRow, TSRow } from "./types";
+import type { CapacidadeRow, PlanoRow, TSRow } from "./types";
 
 /**
  * Leitura da área de trabalho "DEXTRO | IT PROTECT TIME SHEET" no Smartsheet.
@@ -16,6 +16,14 @@ export const FONTES = {
   colaboradores: process.env.SMARTSHEET_SHEET_COLABORADORES ?? "1249337635983236",
   /** Planilha "Horas disponíveis" — capacidade por colaborador e mês. */
   capacidade: process.env.SMARTSHEET_SHEET_CAPACIDADE ?? "8194665899577220",
+  /**
+   * Relatórios "Desenvolvimento de Programas e Ações" — o Plano Estratégico
+   * ITP, uma versão por ciclo anual, consolidando as planilhas por perspectiva.
+   */
+  plano: [
+    { ano: 2024, id: process.env.SMARTSHEET_REPORT_PLANO_2024 ?? "6010181469032324" },
+    { ano: 2025, id: process.env.SMARTSHEET_REPORT_PLANO_2025 ?? "1210769870901124" },
+  ],
 };
 
 /** Cliente interno: horas nele não são faturáveis. */
@@ -180,6 +188,48 @@ export async function carregarTimesheet(revalidate = 1800): Promise<PayloadTimes
     timesheet,
     capacidade,
     colaboradores: [...colaboradores.values()],
+    atualizadoEm: new Date().toISOString(),
+  };
+}
+
+/** Lê o Plano Estratégico ITP de todos os ciclos configurados. */
+export async function carregarPlano(revalidate = 1800): Promise<{
+  plano: PlanoRow[];
+  atualizadoEm: string;
+}> {
+  const porCiclo = await Promise.all(
+    FONTES.plano.map(async ({ ano, id }) => {
+      const rel = await smartsheet<{ columns: Coluna[]; rows: Linha[] }>(
+        `/reports/${id}?pageSize=10000&page=1`,
+        revalidate,
+      );
+      const idx = indicePorTitulo(rel.columns);
+      const out: PlanoRow[] = [];
+      rel.rows.forEach((r) => {
+        const atividade = texto(r.cells[idx["Primário"]]);
+        if (!atividade) return;
+        const status = texto(r.cells[idx["Status"]]);
+        // Linhas marcadas como excluídas continuam na planilha, mas saem do plano.
+        if (status === "Excluído") return;
+        out.push({
+          ano,
+          atividade,
+          status,
+          execucao: texto(r.cells[idx["Execução"]]),
+          concluido: r.cells[idx["Concluído"]]?.value === true,
+          farol: texto(r.cells[idx["Farol"]]),
+          responsavel: texto(r.cells[idx["Responsável"]]),
+          prazo: texto(r.cells[idx["Prazo Final"]]),
+          objetivo: texto(r.cells[idx["Objetivo Estratégico"]]),
+          perspectiva: texto(r.cells[idx["Perspectiva"]]),
+        });
+      });
+      return out;
+    }),
+  );
+
+  return {
+    plano: porCiclo.flat(),
     atualizadoEm: new Date().toISOString(),
   };
 }

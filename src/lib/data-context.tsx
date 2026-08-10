@@ -6,7 +6,6 @@ import {
   COLABORADORES,
   ORC_PESSOAL_SEED,
   ORC_RECORDS_SEED,
-  PLANO_SEED,
   TIMESHEET_SEED,
 } from "@/data";
 import { MESES } from "./constants";
@@ -26,9 +25,12 @@ type PayloadApi = {
 
 type DataContextValue = {
   timesheet: TSRow[];
+  /** Plano Estratégico ITP; vazio enquanto a leitura não volta. */
+  plano: PlanoRow[];
+  /** `true` enquanto o plano ainda está sendo lido. */
+  planoCarregando: boolean;
   /** Horas disponíveis por colaborador/mês, vindas do Smartsheet. */
   capacidade: CapacidadeRow[];
-  plano: PlanoRow[];
   orcRecords: OrcRecord[];
   orcPessoal: OrcPessoal[];
   /** `false` até a primeira leitura no cliente (evita mismatch de hidratação). */
@@ -65,6 +67,8 @@ const CHAVES_OBSOLETAS = ["itpTS", "itpCapacidade", "itpPlano", "itpOrcRec", "it
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [timesheet, setTimesheet] = useState<TSRow[]>(() => enriquecer(TIMESHEET_SEED));
+  const [plano, setPlano] = useState<PlanoRow[]>([]);
+  const [planoCarregando, setPlanoCarregando] = useState(true);
   const [capacidade, setCapacidade] = useState<CapacidadeRow[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [origem, setOrigem] = useState<OrigemTimesheet>("embutido");
@@ -93,6 +97,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .catch((e) => {
         console.error("Smartsheet indisponível; exibindo os dados embutidos.", e);
       });
+    fetch("/api/plano")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status))))
+      .then((p: { plano: PlanoRow[] }) => {
+        if (!cancelado && p?.plano) setPlano(p.plano);
+      })
+      .catch((e) => console.error("Plano Estratégico indisponível.", e))
+      .finally(() => {
+        if (!cancelado) setPlanoCarregando(false);
+      });
+
     return () => {
       cancelado = true;
     };
@@ -102,14 +116,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     () => ({
       timesheet,
       capacidade,
-      plano: PLANO_SEED,
+      plano,
+      planoCarregando,
       orcRecords: ORC_RECORDS_SEED,
       orcPessoal: ORC_PESSOAL_SEED,
       hydrated,
       origem,
       atualizadoEm,
     }),
-    [timesheet, capacidade, hydrated, origem, atualizadoEm],
+    [timesheet, capacidade, plano, planoCarregando, hydrated, origem, atualizadoEm],
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

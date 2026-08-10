@@ -40,16 +40,26 @@ export type CapacidadeRow = {
   horas: number;
 };
 
-/** Uma ação do plano de ação. */
+/**
+ * Uma ação do Plano Estratégico ITP, vinda do relatório
+ * "Desenvolvimento de Programas e Ações" (uma versão por ano).
+ */
 export type PlanoRow = {
-  status: string;
+  /** Ano do ciclo de planejamento (relatório de origem) */
+  ano: number;
   atividade: string;
+  /** Aguardando · Em Atraso · Concluído · Excluído (calculado na planilha) */
+  status: string;
+  /** 1. Não Iniciado · 2. Em Execução · 3. Para Aprovação · 4. Acompanhamento · 5. Concluído */
+  execucao: string;
+  concluido: boolean;
+  /** Sim · Aguardar · Não */
+  farol: string;
   responsavel: string;
+  /** Prazo final em YYYY-MM-DD */
   prazo: string;
   objetivo: string;
-  prioridade: string;
-  dias_atraso: number;
-  farol: string;
+  perspectiva: string;
 };
 
 /** Uma linha de despesa do orçamento. */

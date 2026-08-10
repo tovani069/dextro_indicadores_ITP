@@ -41,10 +41,22 @@ export const OBJ_COLORS: Record<string, string> = {
   "—": "#6E748A",
 };
 
-export const PLANO_STATUS_COLORS: Record<string, { color: string; bg: string }> = {
-  "Concluído": { color: "#00C8A0", bg: "rgba(0,200,160,.15)" },
-  "Em andamento": { color: "#4F8EFF", bg: "rgba(79,142,255,.15)" },
-  "Não iniciado": { color: "#8890B0", bg: "var(--bg4)" },
+/** Cor por estágio de execução, indexada pelo número do rótulo ("2. Em Execução"). */
+export const PLANO_EXEC_CORES: Record<string, string> = {
+  "1": "#8890B0", // Não Iniciado
+  "2": "#4F8EFF", // Em Execução
+  "3": "#FF9B00", // Para Aprovação
+  "4": "#20C0FF", // Acompanhamento
+  "5": "#00C8A0", // Concluído
+};
+
+/** Cor por perspectiva do BSC, indexada pelo número ("4. Processos"). */
+export const PERSPECTIVA_CORES: Record<string, string> = {
+  "1": "#6C3FFF", // Liderança, Estratégias e Planos
+  "2": "#00C8A0", // Finanças
+  "3": "#FF40A0", // Mercado e Clientes
+  "4": "#4F8EFF", // Processos
+  "5": "#FF9B00", // Pessoas
 };
 
 // ── Orçamento ──────────────────────────────────────────────────────────

@@ -2,14 +2,12 @@ import type {
   Indicador,
   OrcPessoal,
   OrcRecord,
-  PlanoRow,
   TSRow,
 } from "@/lib/types";
 
 import timesheetJson from "./timesheet.json";
 import colaboradoresJson from "./colaboradores.json";
 import indicadoresJson from "./indicadores.json";
-import planoJson from "./plano.json";
 import orcRecordsJson from "./orcamento-records.json";
 import orcPessoalJson from "./orcamento-pessoal.json";
 
@@ -18,7 +16,6 @@ import orcPessoalJson from "./orcamento-pessoal.json";
  * importação salva no navegador (localStorage) — ver `lib/data-context`.
  */
 export const TIMESHEET_SEED = timesheetJson as unknown as TSRow[];
-export const PLANO_SEED = planoJson as unknown as PlanoRow[];
 export const ORC_RECORDS_SEED = orcRecordsJson as unknown as OrcRecord[];
 export const ORC_PESSOAL_SEED = orcPessoalJson as unknown as OrcPessoal[];
 
