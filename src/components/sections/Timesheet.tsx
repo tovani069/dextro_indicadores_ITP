@@ -477,12 +477,12 @@ export default function Timesheet() {
         <FilterPills pills={pills} onRemove={removePill} />
       </div>
 
-      {/* KPIs */}
+      {/* KPIs — os sete cabem em uma linha só; quebram apenas em telas estreitas */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))",
-          gap: 10,
+          gridTemplateColumns: "repeat(auto-fit,minmax(146px,1fr))",
+          gap: 8,
           marginBottom: 16,
         }}
       >
