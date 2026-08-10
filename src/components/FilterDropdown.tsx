@@ -33,7 +33,7 @@ export default function FilterDropdown({
   searchable = false,
   wide = false,
 }: Props) {
-  const { aberto, montado, wrapRef, alternar } = useDropdown();
+  const { aberto, montado, wrapRef, menuRef, alternar, classeMenu } = useDropdown();
   const [query, setQuery] = useState("");
 
   // A busca não deve sobreviver ao fechamento do menu.
@@ -73,11 +73,8 @@ export default function FilterDropdown({
       </button>
       {montado && (
         <div
-          className={
-            "ts-dd-menu" +
-            (wide ? " ts-dd-wide" : "") +
-            (aberto ? " anim-sobe" : " anim-recolhe")
-          }
+          ref={menuRef}
+          className={"ts-dd-menu" + (wide ? " ts-dd-wide" : "") + " " + classeMenu}
           role="listbox"
         >
           {searchable && (

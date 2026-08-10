@@ -18,8 +18,17 @@ body{font-family:"IBM Plex Sans",sans-serif;background:var(--bg);color:var(--tex
 .mono{font-family:"IBM Plex Mono",monospace}
 
 /* NAVBAR */
-.navbar{position:sticky;top:0;z-index:100;height:76px;background:var(--bg2);border-bottom:1px solid var(--border2);display:flex;align-items:center;padding:0 20px;gap:12px;box-shadow:var(--shadow)}
-.nav-logo{height:44px;object-fit:contain}
+/* Mesma estrutura do dashboard da Premazon: menu à esquerda, logo, título em
+   duas linhas e, à direita, data + botão de tema. */
+.navbar{position:sticky;top:0;z-index:100;height:76px;background:var(--bg2);border-bottom:1px solid var(--border2);display:flex;align-items:center;padding:0 20px;gap:14px;box-shadow:var(--shadow)}
+.nav-toggle{background:none;border:none;cursor:pointer;color:var(--text2);padding:6px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.nav-toggle:hover{background:var(--bg3)}
+.nav-logo{height:40px;object-fit:contain}
+.nav-title{display:flex;flex-direction:column}
+.nav-title-main{font-size:15px;font-weight:600;color:var(--text);letter-spacing:-.2px}
+.nav-title-sub{font-size:10px;font-weight:400;color:var(--text3);font-family:"IBM Plex Mono",monospace;letter-spacing:.5px;margin-top:1px}
+.theme-btn{background:none;border:1px solid var(--border2);cursor:pointer;color:var(--text2);padding:6px 10px;border-radius:6px;font-size:13px;font-family:"IBM Plex Sans",sans-serif;transition:all .15s}
+.theme-btn:hover{background:var(--bg3)}
 [data-theme="light"] .logo-dark{display:none}
 [data-theme="light"] .logo-white{display:block}
 [data-theme="dark"] .logo-dark{display:block}
@@ -29,11 +38,11 @@ body{font-family:"IBM Plex Sans",sans-serif;background:var(--bg);color:var(--tex
 [data-theme="dark"] .nav-dextro-light{display:none}
 .nav-dots{cursor:pointer;font-size:16px;line-height:1;padding:0 4px;color:var(--text3);border-radius:6px;transition:all .15s;user-select:none}
 .nav-dots:hover{color:var(--text);background:var(--bg4)}
-.nav-divider{width:1px;height:32px;background:var(--border2);margin:0 8px}
+.nav-divider{width:1px;height:36px;background:var(--border2);flex-shrink:0}
 .nav-title{font-size:15px;font-weight:600;color:var(--text)}
 .nav-sub{font-size:10px;color:var(--text3);font-family:"IBM Plex Mono",monospace}
 .nav-right{margin-left:auto;display:flex;align-items:center;gap:10px}
-.nav-date{font-size:11px;font-family:"IBM Plex Mono",monospace;color:var(--text3);background:var(--bg3);border:1px solid var(--border);padding:4px 10px;border-radius:6px}
+.nav-date{font-size:11px;font-family:"IBM Plex Mono",monospace;color:var(--text3);background:var(--bg3);border:1px solid var(--border);padding:5px 10px;border-radius:20px;white-space:nowrap}
 .btn-icon{background:var(--bg3);border:1px solid var(--border);color:var(--text2);width:36px;height:36px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:background .2s}
 .btn-icon:hover{background:var(--bg4)}
 
@@ -379,3 +388,27 @@ table.matriz tr.matriz-total td{border-top:1px solid var(--border2);border-botto
   transition:background .18s cubic-bezier(.22,1,.36,1),color .18s cubic-bezier(.22,1,.36,1);
 }
 .filtro-remover:hover{background:var(--bg4);color:#FF5C6A}
+
+/* ── Barra de filtros compacta: tudo em uma linha ────────────── */
+.ts-dd-btn{height:30px;padding:0 9px;font-size:11.5px;gap:5px}
+.ts-dd-label{max-width:108px}
+.filtro-ativo .filtro-valor{max-width:150px}
+.ts-dd-menu.ts-dd-wide{min-width:210px}
+
+/* Painel do filtro de período */
+.periodo-menu{min-width:196px;padding:10px}
+.periodo-linha{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
+.periodo-linha span{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px}
+.periodo-linha input{
+  background:var(--bg3);border:1px solid var(--border);color:var(--text);
+  font-size:11px;padding:5px 7px;border-radius:6px;font-family:"IBM Plex Sans",sans-serif;
+}
+.periodo-limpar{
+  width:100%;margin-top:2px;padding:6px;border:none;border-radius:6px;
+  background:var(--bg3);color:var(--text3);font-size:11px;cursor:pointer;
+  font-family:"IBM Plex Sans",sans-serif;transition:background .18s cubic-bezier(.22,1,.36,1);
+}
+.periodo-limpar:hover{background:var(--bg4);color:var(--text)}
+
+/* Menu que estouraria a borda direita abre alinhado ao fim do botão */
+.ts-dd-menu.ts-dd-fim{left:auto;right:0;transform-origin:top right}

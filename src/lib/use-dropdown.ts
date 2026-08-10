@@ -1,18 +1,23 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 /** Acompanha a duração de `.anim-recolhe`. */
 const SAIDA_MS = 170;
+/** Folga mínima até a borda da janela. */
+const MARGEM = 10;
 
 /**
- * Abre/fecha uma lista suspensa: fecha ao clicar fora ou apertar Esc e mantém
- * o menu montado durante a animação de saída.
+ * Abre/fecha uma lista suspensa: fecha ao clicar fora ou apertar Esc, mantém o
+ * menu montado durante a animação de saída e o alinha à direita do botão
+ * quando abrir para a direita estouraria a largura da página.
  */
 export function useDropdown() {
   const [aberto, setAberto] = useState(false);
   const [montado, setMontado] = useState(false);
+  const [alinharFim, setAlinharFim] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!aberto) return;
@@ -43,13 +48,26 @@ export function useDropdown() {
     return () => clearTimeout(t);
   }, [aberto, montado]);
 
+  // Decide o lado antes da pintura, para o menu não "pular" depois de aberto.
+  useLayoutEffect(() => {
+    if (!montado || !aberto) return;
+    const menu = menuRef.current;
+    const wrap = wrapRef.current;
+    if (!menu || !wrap) return;
+    const largura = menu.offsetWidth;
+    const inicio = wrap.getBoundingClientRect().left;
+    setAlinharFim(inicio + largura > window.innerWidth - MARGEM);
+  }, [montado, aberto]);
+
   return {
     aberto,
     montado,
     wrapRef,
+    menuRef,
     alternar: () => setAberto((a) => !a),
     fechar: () => setAberto(false),
-    /** Classe de animação do menu conforme está entrando ou saindo. */
-    classeAnimacao: aberto ? "anim-sobe" : "anim-recolhe",
+    /** Classes do menu: animação de entrada/saída e lado de abertura. */
+    classeMenu:
+      (aberto ? "anim-sobe" : "anim-recolhe") + (alinharFim ? " ts-dd-fim" : ""),
   };
 }

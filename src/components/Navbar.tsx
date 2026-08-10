@@ -31,33 +31,34 @@ export default function Navbar({ onToggleSidebar }: Props) {
   }
 
   return (
-    <div className="navbar">
+    <nav className="navbar">
+      <button className="nav-toggle" onClick={onToggleSidebar} aria-label="Menu">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path
+            d="M2 4h14M2 9h14M2 14h14"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+        </svg>
+      </button>
+
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/logo-itp-dark.png"
-        alt="IT Protect"
-        className="logo-dark"
-        style={{ height: 40, objectFit: "contain" }}
-      />
+      <img src="/logo-itp-dark.png" alt="IT Protect" className="nav-logo logo-dark" />
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/logo-itp-light.png"
-        alt="IT Protect"
-        className="logo-white"
-        style={{ height: 40, objectFit: "contain" }}
-      />
+      <img src="/logo-itp-light.png" alt="IT Protect" className="nav-logo logo-white" />
+
       <div className="nav-divider" />
-      <div>
-        <div className="nav-title">Diretoria de Operações</div>
-        <div className="nav-sub">Dashboard Estratégico 2026</div>
+
+      <div className="nav-title">
+        <span className="nav-title-main">Diretoria de Operações</span>
+        <span className="nav-title-sub">DASHBOARD ESTRATÉGICO 2026</span>
       </div>
+
       <div className="nav-right">
-        <div className="nav-date mono">{dateStr}</div>
-        <button className="btn-icon" onClick={toggleTheme} title="Alternar tema">
-          🌓
-        </button>
-        <button className="btn-icon" onClick={onToggleSidebar} title="Sidebar">
-          ☰
+        <span className="nav-date mono">{dateStr && "Atualizado " + dateStr}</span>
+        <button className="theme-btn" onClick={toggleTheme}>
+          Tema
         </button>
         <div className="nav-divider" />
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -73,6 +74,6 @@ export default function Navbar({ onToggleSidebar }: Props) {
           alt="Dextro"
         />
       </div>
-    </div>
+    </nav>
   );
 }

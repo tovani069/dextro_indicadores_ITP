@@ -7,6 +7,7 @@ import Gauge from "@/components/charts/Gauge";
 import RankBars from "@/components/charts/RankBars";
 import FilterDropdown, { type FilterOption } from "@/components/FilterDropdown";
 import FiltrosAtivos, { type Pill } from "@/components/FiltrosAtivos";
+import PeriodoDropdown from "@/components/PeriodoDropdown";
 import KpiCard from "@/components/KpiCard";
 import {
   CHARGE_TARGET,
@@ -390,10 +391,9 @@ export default function Timesheet() {
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 8,
-          flexWrap: "wrap",
+          gap: 7,
           marginBottom: 16,
-          padding: "10px 14px",
+          padding: "9px 12px",
           background: "var(--bg2)",
           border: "1px solid var(--border)",
           borderRadius: 10,
@@ -409,7 +409,7 @@ export default function Timesheet() {
         )}
         {temStatus && (
           <FilterDropdown
-            label="Status Colab."
+            label="Status"
             options={allStatus.map((s) => ({ value: s, label: s }))}
             selected={f.sts}
             onToggle={(v) => toggle("sts", v)}
@@ -423,7 +423,7 @@ export default function Timesheet() {
           searchable
         />
         <FilterDropdown
-          label="Cliente / Contrato"
+          label="Cliente"
           wide
           searchable
           options={allClientes.map((c) => ({ value: c, label: stripPrefix(c) }))}
@@ -460,29 +460,13 @@ export default function Timesheet() {
           onToggle={(v) => setF((p) => ({ ...p, tipo: v as Tipo }))}
         />
 
-        {/* Período (equivale ao slicer "Date" do relatório) */}
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <span style={{ fontSize: 10, color: "var(--text3)" }}>Período</span>
-          <input
-            type="date"
-            className="filter-sel"
-            style={{ width: "auto", margin: 0, padding: "5px 7px", fontSize: 11 }}
-            min={periodo.min}
-            max={periodo.max}
-            value={f.de}
-            onChange={(e) => setF((p) => ({ ...p, de: e.target.value }))}
-          />
-          <span style={{ fontSize: 10, color: "var(--text3)" }}>até</span>
-          <input
-            type="date"
-            className="filter-sel"
-            style={{ width: "auto", margin: 0, padding: "5px 7px", fontSize: 11 }}
-            min={periodo.min}
-            max={periodo.max}
-            value={f.ate}
-            onChange={(e) => setF((p) => ({ ...p, ate: e.target.value }))}
-          />
-        </div>
+        <PeriodoDropdown
+          de={f.de}
+          ate={f.ate}
+          min={periodo.min}
+          max={periodo.max}
+          onChange={(de, ate) => setF((p) => ({ ...p, de, ate }))}
+        />
 
         <div style={{ width: 1, height: 24, background: "var(--border2)", margin: "0 2px" }} />
         <button className="btn-link" onClick={() => setF(FILTROS_VAZIOS)}>

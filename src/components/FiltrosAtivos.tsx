@@ -14,7 +14,7 @@ type Props = {
  * selecionado — assim a barra de filtros não cresce a cada escolha.
  */
 export default function FiltrosAtivos({ pills, onRemove }: Props) {
-  const { aberto, montado, wrapRef, alternar } = useDropdown();
+  const { aberto, montado, wrapRef, menuRef, alternar, classeMenu } = useDropdown();
 
   if (!pills.length) return null;
 
@@ -30,11 +30,7 @@ export default function FiltrosAtivos({ pills, onRemove }: Props) {
         <span className="ts-dd-arrow">▾</span>
       </button>
       {montado && (
-        <div
-          className={
-            "ts-dd-menu ts-dd-wide " + (aberto ? "anim-sobe" : "anim-recolhe")
-          }
-        >
+        <div ref={menuRef} className={"ts-dd-menu ts-dd-wide " + classeMenu}>
           {pills.map((p) => (
             <div key={p.grupo + "|" + p.valor} className="ts-dd-item filtro-ativo">
               <span className="filtro-grupo">{p.rotulo}</span>
