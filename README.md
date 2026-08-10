@@ -26,9 +26,8 @@ src/
   components/
     Dashboard.tsx       # shell: provider de dados + navegação entre seções
     Navbar.tsx          # logos, data, alternar tema, alternar sidebar
-    Sidebar.tsx         # menu de seções + botão ⋮ de dados
+    Sidebar.tsx         # menu de seções
     Footer.tsx
-    DataMenu.tsx        # modal de importar / exportar / restaurar
     FilterDropdown.tsx  # dropdown de filtro (multi-seleção ou opção única)
     FilterPills.tsx     # chips dos filtros ativos
     KpiCard.tsx
@@ -47,45 +46,43 @@ src/
     format.ts           # parse/format de números, moeda, meses, destaque de busca
     indicadores.ts      # status do indicador vs meta
     data-context.tsx    # estado dos dados + persistência no navegador
-    xlsx-io.ts          # leitura/escrita de planilhas (SheetJS, carregado sob demanda)
+    smartsheet.ts       # leitura da API do Smartsheet (só no servidor)
+    capacidade.ts       # estimativa de horas disponíveis (fallback)
 legacy/index.html       # versão anterior (arquivo único), mantida como referência
 ```
 
 ## Dados
 
-Os dados originais ficam em `src/data/*.json` e são carregados no build:
+O **Timesheet** vem do Smartsheet, da área de trabalho *DEXTRO | IT PROTECT TIME SHEET*, lido pela
+rota [/api/timesheet](src/app/api/timesheet/route.ts) no servidor — o `SMARTSHEET_TOKEN` (variável
+de ambiente na Vercel) nunca chega ao navegador. A leitura é cacheada por 30 minutos.
 
-| Arquivo | Conteúdo | Chave no navegador |
-| --- | --- | --- |
-| `timesheet.json` | 7.173 lançamentos de horas | `itpTS` |
-| `plano.json` | 40 ações do plano | `itpPlano` |
-| `orcamento-records.json` | 45 linhas de despesa | `itpOrcRec` |
-| `orcamento-pessoal.json` | 11 posições do quadro | `itpOrcPes` |
-| `indicadores.json` | 17 indicadores (somente leitura) | — |
+| Fonte no Smartsheet | Vira |
+| --- | --- |
+| Relatório *Base todos os lançamentos* | lançamentos de horas (o colaborador sai do nome da planilha de origem) |
+| Planilha *Cadastro de Colaboradores* | nome oficial + Time (Setor) + Status |
+| Planilha *Horas disponíveis* | capacidade por colaborador/mês, base do % Preenchimento |
 
-No menu **⋮** ao lado de cada seção da sidebar é possível:
+Se a leitura falhar, o dashboard exibe a base embutida em `src/data/timesheet.json` e o card
+"Horas Disponíveis" passa a mostrar a capacidade estimada (dias úteis × 8h).
 
-- **Importar Excel/CSV** — substitui os dados exibidos; ficam salvos no `localStorage` deste navegador.
-- **Exportar modelo** — baixa uma planilha com o formato esperado na importação.
-- **Restaurar original** — descarta o que foi importado e volta aos dados do repositório.
+**Regras de negócio** (as mesmas do relatório de Power BI da operação, em [src/lib/timesheet.ts](src/lib/timesheet.ts)):
 
-Para atualizar os dados de forma permanente (para todos os usuários), edite os JSON em `src/data/`
-e faça um novo deploy.
+- **Faturável** é definido pela *categoria* — 1. Suporte, 2. Implantação, 6. Laboratório,
+  7. Investigação de Dados e 8. Relatórios — e não pelo cliente. Horas no cliente interno (ITP)
+  nessas categorias são faturáveis.
+- **Chargeability** = horas faturáveis ÷ horas **disponíveis** (não ÷ preenchidas).
 
-### Timesheet — Time, Status e Capacidade
+As demais seções — **Plano de Ação**, **Indicadores** e **Orçamento** — usam os JSON de
+`src/data/`. Para atualizá-las, edite o arquivo e faça um novo deploy:
 
-A aba Timesheet reproduz os visuais do relatório de Power BI da operação.
-
-**Time e Status Colab.** vêm de [src/data/colaboradores.json](src/data/colaboradores.json) — uma linha
-por colaborador com `time` (MDR / Suporte) e `st` (Ativo / Inativo). É só editar o arquivo para
-corrigir ou incluir alguém. Quem não estiver mapeado aparece como "Não informado".
-Se a planilha importada trouxer as colunas `Time` e `Status Colab.`, elas têm prioridade sobre o JSON.
-
-**Horas Disponíveis** e **% Preenchimento** usam a aba **Capacidade** da planilha
-(`Colaborador`, `Ano`, `MesNum`, `Horas Disponíveis`). Sem ela, a disponibilidade é **estimada**
-como `dias úteis do mês × 8h` para cada mês em que o colaborador tem lançamentos (descontando
-feriados nacionais, inclusive os móveis) — o cabeçalho avisa "disponibilidade estimada".
-Para os números oficiais, preencha a aba (que já vem no modelo exportado) e importe.
+| Arquivo | Conteúdo |
+| --- | --- |
+| `plano.json` | ações do plano |
+| `orcamento-records.json` | linhas de despesa |
+| `orcamento-pessoal.json` | quadro de pessoal |
+| `indicadores.json` | indicadores |
+| `colaboradores.json` | Time/Status de reserva, usado quando o Smartsheet não responde |
 
 ## Deploy (Vercel)
 
