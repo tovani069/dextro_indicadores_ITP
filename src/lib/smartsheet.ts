@@ -1,3 +1,4 @@
+import { ehFaturavel } from "./timesheet";
 import type { CapacidadeRow, TSRow } from "./types";
 
 /**
@@ -139,17 +140,18 @@ async function lerLancamentos(
       const planilha = texto(r.cells[idx["Nome da planilha"]]);
       const info = porPlanilha.get(planilha);
       const cliente = texto(r.cells[idx["Cliente"]]);
+      const categoria = texto(r.cells[idx["Categoria"]]);
       const [ano, mes] = data.split("-").map(Number);
       if (!ano || !mes) return;
 
       out.push({
         c: info?.c || nomeDaPlanilha(planilha),
         cl: cliente,
-        cat: texto(r.cells[idx["Categoria"]]),
+        cat: categoria,
         mo: mes,
         a: ano,
         h: horas,
-        b: Boolean(cliente) && !CLIENTE_INTERNO.test(cliente),
+        b: ehFaturavel(categoria),
         d: data,
         ...(info?.time ? { time: info.time } : {}),
         ...(info?.st ? { st: info.st } : {}),

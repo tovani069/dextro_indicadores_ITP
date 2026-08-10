@@ -22,6 +22,7 @@ import {
   abrevCat,
   chargBg,
   chargColor,
+  chargeability,
   chargLabel,
   fmt2,
   fmtH,
@@ -192,6 +193,22 @@ export default function Timesheet() {
     [capacidadeBase, infoColab, f],
   );
 
+  /** Horas disponíveis por colaborador e por colaborador/mês, no recorte atual. */
+  const capPorColab = useMemo(() => {
+    const m = new Map<string, number>();
+    capacidadeFiltrada.forEach((c) => m.set(c.c, (m.get(c.c) ?? 0) + c.horas));
+    return m;
+  }, [capacidadeFiltrada]);
+
+  const capPorColabMes = useMemo(() => {
+    const m = new Map<string, number>();
+    capacidadeFiltrada.forEach((c) => {
+      const k = `${c.c}|${c.a}|${c.mo}`;
+      m.set(k, (m.get(k) ?? 0) + c.horas);
+    });
+    return m;
+  }, [capacidadeFiltrada]);
+
   function toggle(grupo: GrupoLista, value: string) {
     setF((prev) => {
       const arr = prev[grupo];
@@ -237,14 +254,14 @@ export default function Timesheet() {
   const nonBill = horasPreenchidas - horasFaturaveis;
   const horasDisponiveis = capacidadeFiltrada.reduce((a, c) => a + c.horas, 0);
   const pctPreenchimento = horasDisponiveis > 0 ? (horasPreenchidas / horasDisponiveis) * 100 : 0;
-  const pctChargeability = horasPreenchidas > 0 ? (horasFaturaveis / horasPreenchidas) * 100 : 0;
+  const pctChargeability = chargeability(horasFaturaveis, horasPreenchidas, horasDisponiveis);
 
   const colabs = useMemo(() => [...new Set(rows.map((r) => r.c))].sort(), [rows]);
   const colabChargs = colabs.map((c) => {
     const cr = rows.filter((r) => r.c === c);
     const t = cr.reduce((a, r) => a + r.h, 0);
     const b = cr.filter((r) => r.b).reduce((a, r) => a + r.h, 0);
-    return t > 0 ? (b / t) * 100 : 0;
+    return chargeability(b, t, capPorColab.get(c) ?? 0);
   });
   const acima = colabChargs.filter((v) => v >= CHARGE_TARGET).length;
   const abaixo = colabChargs.filter((v) => v < CHARGE_TARGET).length;
@@ -295,7 +312,7 @@ export default function Timesheet() {
         .reduce((a, c) => a + c.horas, 0);
       return {
         label: `${ano} ${mo}`,
-        chargeability: t > 0 ? Math.round((b / t) * 100) : null,
+        chargeability: t > 0 ? Math.round(chargeability(b, t, disp)) : null,
         preenchimento: disp > 0 ? Math.round((t / disp) * 100) : null,
       };
     });
@@ -340,11 +357,11 @@ export default function Timesheet() {
         total: Math.round(total),
         billable: Math.round(billable),
         non_billable: Math.round(total - billable),
-        chargeability: total > 0 ? Math.round((billable / total) * 100) : 0,
+        chargeability: Math.round(chargeability(billable, total, capPorColab.get(colab) ?? 0)),
       };
     });
     return list.sort((a, b) => (a[rankCol] - b[rankCol]) * rankDir);
-  }, [colabs, rows, rankCol, rankDir]);
+  }, [colabs, rows, capPorColab, rankCol, rankDir]);
 
   function sortRank(col: RankCol) {
     if (rankCol === col) setRankDir((d) => d * -1);
@@ -707,7 +724,7 @@ export default function Timesheet() {
                   const cr = rows.filter((r) => r.c === c);
                   const t = cr.reduce((a, r) => a + r.h, 0);
                   const b = cr.filter((r) => r.b).reduce((a, r) => a + r.h, 0);
-                  return t > 0 ? Math.round((b / t) * 100) : 0;
+                  return Math.round(chargeability(b, t, capPorColab.get(c) ?? 0));
                 });
                 const grads = vals.map((v) => {
                   const g = ctx.createLinearGradient(0, 0, 0, h);
@@ -942,6 +959,8 @@ export default function Timesheet() {
               colab={colab}
               rows={rows}
               cats={allCats}
+              disponiveis={capPorColab.get(colab) ?? 0}
+              capPorMes={capPorColabMes}
               onAbrir={() => setDetalhe(colab)}
             />
           ))
@@ -1046,7 +1065,13 @@ export default function Timesheet() {
       </div>
 
       {detalhe && (
-        <ColabDetalhe colab={detalhe} rows={rows} onClose={() => setDetalhe(null)} />
+        <ColabDetalhe
+          colab={detalhe}
+          rows={rows}
+          disponiveis={capPorColab.get(detalhe) ?? 0}
+          capPorMes={capPorColabMes}
+          onClose={() => setDetalhe(null)}
+        />
       )}
     </>
   );
@@ -1056,17 +1081,21 @@ function ColabCard({
   colab,
   rows,
   cats,
+  disponiveis,
+  capPorMes,
   onAbrir,
 }: {
   colab: string;
   rows: TSRow[];
   cats: string[];
+  disponiveis: number;
+  capPorMes: Map<string, number>;
   onAbrir: () => void;
 }) {
   const cr = rows.filter((r) => r.c === colab);
   const tot = cr.reduce((a, r) => a + r.h, 0);
   const bill = cr.filter((r) => r.b).reduce((a, r) => a + r.h, 0);
-  const charg = tot > 0 ? Math.round((bill / tot) * 100) : 0;
+  const charg = Math.round(chargeability(bill, tot, disponiveis));
   const col = chargColor(charg);
   const bg = chargBg(charg);
   const label = chargLabel(charg);
@@ -1202,7 +1231,11 @@ function ColabCard({
           if (!mr.length) return null;
           const t = mr.reduce((a, r) => a + r.h, 0);
           const b = mr.filter((r) => r.b).reduce((a, r) => a + r.h, 0);
-          const v = t > 0 ? Math.round((b / t) * 100) : null;
+          const disp = mr.reduce(
+            (a, r) => Math.max(a, capPorMes.get(`${colab}|${r.a}|${r.mo}`) ?? 0),
+            0,
+          );
+          const v = t > 0 ? Math.round(chargeability(b, t, disp)) : null;
           const dc = v === null ? "#6E748A" : chargColor(v);
           return (
             <div key={mes} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>

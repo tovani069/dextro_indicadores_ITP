@@ -8,6 +8,7 @@ import {
   chargBg,
   chargColor,
   chargLabel,
+  chargeability,
   fmtH,
   resumoColaborador,
   rotuloCat,
@@ -19,11 +20,15 @@ type Props = {
   colab: string;
   /** Lançamentos já filtrados pela barra de filtros da seção. */
   rows: TSRow[];
+  /** Horas disponíveis do colaborador no recorte atual. */
+  disponiveis: number;
+  /** Horas disponíveis por `colab|ano|mês`. */
+  capPorMes: Map<string, number>;
   onClose: () => void;
 };
 
 /** Detalhe do colaborador em destaque, sobre o restante da tela desfocado. */
-export default function ColabDetalhe({ colab, rows, onClose }: Props) {
+export default function ColabDetalhe({ colab, rows, disponiveis, capPorMes, onClose }: Props) {
   const [visivel, setVisivel] = useState(false);
 
   useEffect(() => {
@@ -45,11 +50,12 @@ export default function ColabDetalhe({ colab, rows, onClose }: Props) {
     };
   }, [onClose]);
 
-  const { linhas, total, billable, nonBillable, chargeability } = useMemo(
+  const { linhas, total, billable, nonBillable } = useMemo(
     () => resumoColaborador(rows, colab),
     [rows, colab],
   );
-  const cor = chargColor(chargeability);
+  const pctCharg = Math.round(chargeability(billable, total, disponiveis));
+  const cor = chargColor(pctCharg);
 
   const time = linhas.find((r) => r.time)?.time;
   const status = linhas.find((r) => r.st)?.st;
@@ -62,9 +68,17 @@ export default function ColabDetalhe({ colab, rows, onClose }: Props) {
         if (!mr.length) return null;
         const t = mr.reduce((a, r) => a + r.h, 0);
         const b = mr.filter((r) => r.b).reduce((a, r) => a + r.h, 0);
-        return { rotulo: MES_ABBR[i], total: t, pct: t > 0 ? Math.round((b / t) * 100) : 0 };
+        const disp = mr.reduce(
+          (a, r) => Math.max(a, capPorMes.get(`${colab}|${r.a}|${r.mo}`) ?? 0),
+          0,
+        );
+        return {
+          rotulo: MES_ABBR[i],
+          total: t,
+          pct: Math.round(chargeability(b, t, disp)),
+        };
       }).filter((m): m is { rotulo: string; total: number; pct: number } => m !== null),
-    [linhas],
+    [linhas, colab, capPorMes],
   );
 
   const categorias = useMemo(() => {
@@ -128,15 +142,15 @@ export default function ColabDetalhe({ colab, rows, onClose }: Props) {
                     {status}
                   </span>
                 )}
-                <span className="chip" style={{ background: chargBg(chargeability), color: cor }}>
-                  {chargLabel(chargeability)}
+                <span className="chip" style={{ background: chargBg(pctCharg), color: cor }}>
+                  {chargLabel(pctCharg)}
                 </span>
               </div>
             </div>
           </div>
           <div style={{ textAlign: "right", flexShrink: 0 }}>
             <div className="mono" style={{ fontSize: 38, fontWeight: 700, color: cor, lineHeight: 1 }}>
-              {chargeability}%
+              {pctCharg}%
             </div>
             <div className="mono" style={{ fontSize: 10, color: "var(--text3)", marginTop: 2 }}>
               chargeability
@@ -205,7 +219,7 @@ export default function ColabDetalhe({ colab, rows, onClose }: Props) {
           >
             <div
               style={{
-                width: Math.max(chargeability, 2) + "%",
+                width: Math.max(pctCharg, 2) + "%",
                 height: "100%",
                 borderRadius: 5,
                 background: `linear-gradient(90deg,${cor}EE,${cor}88)`,

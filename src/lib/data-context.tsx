@@ -17,6 +17,7 @@ import {
   TIMESHEET_SEED,
 } from "@/data";
 import { MESES, STORAGE_KEYS } from "./constants";
+import { ehFaturavel } from "./timesheet";
 import type { CapacidadeRow, OrcPessoal, OrcRecord, PlanoRow, TSRow } from "./types";
 
 export type DatasetKey = "timesheet" | "plano" | "orcamento";
@@ -68,14 +69,16 @@ function readStored<T>(key: string): T[] | null {
 const INFO_COLAB = new Map(COLABORADORES.map((i) => [i.c, i]));
 
 /**
- * Preenche Time e Status a partir de `data/colaboradores.json` nos lançamentos
- * que não trazem esses campos. O que vier na planilha importada tem prioridade.
+ * Normaliza os lançamentos de qualquer origem: aplica a regra de faturável
+ * (pela categoria) e completa Time/Status a partir de
+ * `data/colaboradores.json` quando o lançamento não os traz.
  */
 function enriquecer(rows: TSRow[]): TSRow[] {
   return rows.map((r) => {
     const info = INFO_COLAB.get(r.c);
-    if (!info || (r.time && r.st)) return r;
-    return { ...r, time: r.time ?? info.time, st: r.st ?? info.st };
+    const b = ehFaturavel(r.cat);
+    if (!info || (r.time && r.st)) return b === r.b ? r : { ...r, b };
+    return { ...r, b, time: r.time ?? info.time, st: r.st ?? info.st };
   });
 }
 
@@ -124,7 +127,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .then((p: PayloadApi) => {
         if (cancelado || !p?.timesheet?.length) return;
         setTimesheetState(
-          p.timesheet.map((r) => ({ ...r, m: r.m || MESES[r.mo - 1] || "" })),
+          enriquecer(p.timesheet.map((r) => ({ ...r, m: r.m || MESES[r.mo - 1] || "" }))),
         );
         if (p.capacidade?.length) setCapacidadeState(p.capacidade);
         setOrigem("smartsheet");
