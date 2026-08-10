@@ -99,6 +99,7 @@ export const IND_NIVEL_COLORS: Record<string, { color: string; bg: string }> = {
 // ── Chaves de persistência no navegador ────────────────────────────────
 export const STORAGE_KEYS = {
   timesheet: "itpTS",
+  capacidade: "itpCapacidade",
   plano: "itpPlano",
   orcRecords: "itpOrcRec",
   orcPessoal: "itpOrcPes",

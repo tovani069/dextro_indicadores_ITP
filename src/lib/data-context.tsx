@@ -16,18 +16,20 @@ import {
   TIMESHEET_SEED,
 } from "@/data";
 import { STORAGE_KEYS } from "./constants";
-import type { OrcPessoal, OrcRecord, PlanoRow, TSRow } from "./types";
+import type { CapacidadeRow, OrcPessoal, OrcRecord, PlanoRow, TSRow } from "./types";
 
 export type DatasetKey = "timesheet" | "plano" | "orcamento";
 
 type DataContextValue = {
   timesheet: TSRow[];
+  /** Horas disponíveis por colaborador/mês; vazio enquanto não for importada. */
+  capacidade: CapacidadeRow[];
   plano: PlanoRow[];
   orcRecords: OrcRecord[];
   orcPessoal: OrcPessoal[];
   /** `false` até o primeiro efeito ler o localStorage (evita mismatch de hidratação). */
   hydrated: boolean;
-  setTimesheet: (rows: TSRow[]) => void;
+  setTimesheet: (rows: TSRow[], capacidade?: CapacidadeRow[]) => void;
   setPlano: (rows: PlanoRow[]) => void;
   setOrcamento: (records: OrcRecord[] | null, pessoal: OrcPessoal[] | null) => void;
   restore: (dataset: DatasetKey) => void;
@@ -57,6 +59,7 @@ function persist(key: string, rows: unknown[]) {
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [timesheet, setTimesheetState] = useState<TSRow[]>(TIMESHEET_SEED);
+  const [capacidade, setCapacidadeState] = useState<CapacidadeRow[]>([]);
   const [plano, setPlanoState] = useState<PlanoRow[]>(PLANO_SEED);
   const [orcRecords, setOrcRecordsState] = useState<OrcRecord[]>(ORC_RECORDS_SEED);
   const [orcPessoal, setOrcPessoalState] = useState<OrcPessoal[]>(ORC_PESSOAL_SEED);
@@ -66,6 +69,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const ts = readStored<TSRow>(STORAGE_KEYS.timesheet);
     if (ts) setTimesheetState(ts);
+    const cap = readStored<CapacidadeRow>(STORAGE_KEYS.capacidade);
+    if (cap) setCapacidadeState(cap);
     const pl = readStored<PlanoRow>(STORAGE_KEYS.plano);
     if (pl) setPlanoState(pl);
     const rec = readStored<OrcRecord>(STORAGE_KEYS.orcRecords);
@@ -75,9 +80,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setHydrated(true);
   }, []);
 
-  const setTimesheet = useCallback((rows: TSRow[]) => {
+  const setTimesheet = useCallback((rows: TSRow[], cap?: CapacidadeRow[]) => {
     persist(STORAGE_KEYS.timesheet, rows);
     setTimesheetState(rows);
+    if (cap && cap.length) {
+      persist(STORAGE_KEYS.capacidade, cap);
+      setCapacidadeState(cap);
+    }
   }, []);
 
   const setPlano = useCallback((rows: PlanoRow[]) => {
@@ -102,7 +111,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const restore = useCallback((dataset: DatasetKey) => {
     if (dataset === "timesheet") {
       localStorage.removeItem(STORAGE_KEYS.timesheet);
+      localStorage.removeItem(STORAGE_KEYS.capacidade);
       setTimesheetState(TIMESHEET_SEED);
+      setCapacidadeState([]);
     } else if (dataset === "plano") {
       localStorage.removeItem(STORAGE_KEYS.plano);
       setPlanoState(PLANO_SEED);
@@ -117,6 +128,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<DataContextValue>(
     () => ({
       timesheet,
+      capacidade,
       plano,
       orcRecords,
       orcPessoal,
@@ -128,6 +140,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       timesheet,
+      capacidade,
       plano,
       orcRecords,
       orcPessoal,

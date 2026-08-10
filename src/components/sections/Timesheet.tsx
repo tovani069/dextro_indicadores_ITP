@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 
 import ChartCanvas from "@/components/charts/ChartCanvas";
+import Gauge from "@/components/charts/Gauge";
+import RankBars from "@/components/charts/RankBars";
 import FilterDropdown, { type FilterOption } from "@/components/FilterDropdown";
 import FilterPills, { type Pill } from "@/components/FilterPills";
 import KpiCard from "@/components/KpiCard";
@@ -17,13 +19,19 @@ import { useData } from "@/lib/data-context";
 import type { TSRow } from "@/lib/types";
 
 type Tipo = "todos" | "billable" | "nonbillable";
+
 type Filtros = {
   colabs: string[];
   anos: string[];
   meses: string[];
   cats: string[];
   clientes: string[];
+  times: string[];
+  sts: string[];
   tipo: Tipo;
+  /** Período (YYYY-MM-DD); vazio = sem limite. */
+  de: string;
+  ate: string;
 };
 
 const FILTROS_VAZIOS: Filtros = {
@@ -32,8 +40,15 @@ const FILTROS_VAZIOS: Filtros = {
   meses: [],
   cats: [],
   clientes: [],
+  times: [],
+  sts: [],
   tipo: "todos",
+  de: "",
+  ate: "",
 };
+
+/** Grupos de filtro que são listas de valores (usados por dropdowns, pills e cross-filter). */
+type GrupoLista = "colabs" | "anos" | "meses" | "cats" | "clientes" | "times" | "sts";
 
 type RankCol = "total" | "billable" | "non_billable" | "chargeability";
 
@@ -45,17 +60,24 @@ function chargColor(v: number) {
   return v >= CHARGE_TARGET ? "#00C8A0" : v >= 50 ? "#FF9B00" : "#FF5C6A";
 }
 
+const fmtH = (v: number) => Math.round(v).toLocaleString("pt-BR") + "h";
+const fmtMil = (v: number) =>
+  v >= 1000 ? (v / 1000).toFixed(2).replace(".", ",") + " Mil" : Math.round(v).toLocaleString("pt-BR");
+const fmt2 = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 export default function Timesheet() {
-  const { timesheet } = useData();
+  const { timesheet, capacidade } = useData();
   const [f, setF] = useState<Filtros>(FILTROS_VAZIOS);
   const [rankCol, setRankCol] = useState<RankCol>("chargeability");
   const [rankDir, setRankDir] = useState(-1);
 
+  // Campos que só existem quando a base importada os traz.
+  const temTime = useMemo(() => timesheet.some((r) => r.time), [timesheet]);
+  const temStatus = useMemo(() => timesheet.some((r) => r.st), [timesheet]);
+  const temCapacidade = capacidade.length > 0;
+
   // ── Listas de opções ────────────────────────────────────────────────
-  const allColabs = useMemo(
-    () => [...new Set(timesheet.map((r) => r.c))].sort(),
-    [timesheet],
-  );
+  const allColabs = useMemo(() => [...new Set(timesheet.map((r) => r.c))].sort(), [timesheet]);
   const allAnos = useMemo(
     () => [...new Set(timesheet.map((r) => r.a))].sort().map(String),
     [timesheet],
@@ -71,12 +93,24 @@ export default function Timesheet() {
     () => [...new Set(timesheet.map((r) => r.cat))].filter(Boolean).sort(),
     [timesheet],
   );
+  const allTimes = useMemo(
+    () => [...new Set(timesheet.map((r) => r.time).filter(Boolean))].sort() as string[],
+    [timesheet],
+  );
+  const allStatus = useMemo(
+    () => [...new Set(timesheet.map((r) => r.st).filter(Boolean))].sort() as string[],
+    [timesheet],
+  );
   const allClientes = useMemo(() => {
     const horas: Record<string, number> = {};
     timesheet.filter((r) => r.b).forEach((r) => (horas[r.cl] = (horas[r.cl] || 0) + r.h));
     return Object.keys(horas)
       .filter(Boolean)
       .sort((a, b) => horas[b] - horas[a]);
+  }, [timesheet]);
+  const periodo = useMemo(() => {
+    const datas = timesheet.map((r) => r.d).filter(Boolean).sort();
+    return { min: datas[0] ?? "", max: datas[datas.length - 1] ?? "" };
   }, [timesheet]);
 
   // ── Filtragem ───────────────────────────────────────────────────────
@@ -88,14 +122,33 @@ export default function Timesheet() {
         if (f.meses.length && !f.meses.includes(r.m)) return false;
         if (f.cats.length && !f.cats.includes(r.cat)) return false;
         if (f.clientes.length && !f.clientes.includes(r.cl)) return false;
+        if (f.times.length && !f.times.includes(r.time ?? "")) return false;
+        if (f.sts.length && !f.sts.includes(r.st ?? "")) return false;
         if (f.tipo === "billable" && !r.b) return false;
         if (f.tipo === "nonbillable" && r.b) return false;
+        if (f.de && r.d && r.d < f.de) return false;
+        if (f.ate && r.d && r.d > f.ate) return false;
         return true;
       }),
     [timesheet, f],
   );
 
-  function toggle(grupo: keyof Omit<Filtros, "tipo">, value: string) {
+  // A capacidade só responde aos filtros de pessoa e de tempo — cliente e
+  // categoria são atributos do lançamento, não da disponibilidade do colaborador.
+  const capacidadeFiltrada = useMemo(
+    () =>
+      capacidade.filter((c) => {
+        if (f.colabs.length && !f.colabs.includes(c.c)) return false;
+        if (f.anos.length && !f.anos.includes(String(c.a))) return false;
+        if (f.meses.length && !f.meses.includes(MESES[c.mo - 1])) return false;
+        if (f.de && `${c.a}-${String(c.mo).padStart(2, "0")}-28` < f.de) return false;
+        if (f.ate && `${c.a}-${String(c.mo).padStart(2, "0")}-01` > f.ate) return false;
+        return true;
+      }),
+    [capacidade, f],
+  );
+
+  function toggle(grupo: GrupoLista, value: string) {
     setF((prev) => {
       const arr = prev[grupo];
       return {
@@ -105,6 +158,7 @@ export default function Timesheet() {
     });
   }
 
+  // ── Chips dos filtros ativos ────────────────────────────────────────
   const pills: Pill[] = [];
   ([
     ["colabs", "Colab"],
@@ -112,25 +166,35 @@ export default function Timesheet() {
     ["meses", "Mês"],
     ["cats", "Cat"],
     ["clientes", "Cliente"],
+    ["times", "Time"],
+    ["sts", "Status"],
   ] as const).forEach(([grupo, rotulo]) => {
-    f[grupo].forEach((v) =>
-      pills.push({ grupo, rotulo, valor: v, texto: stripPrefix(v) }),
-    );
+    f[grupo].forEach((v) => pills.push({ grupo, rotulo, valor: v, texto: stripPrefix(v) }));
   });
-  if (f.tipo !== "todos") {
-    pills.push({ grupo: "tipo", rotulo: "Tipo", valor: f.tipo, texto: f.tipo });
+  if (f.tipo !== "todos") pills.push({ grupo: "tipo", rotulo: "Tipo", valor: f.tipo, texto: f.tipo });
+  if (f.de || f.ate) {
+    pills.push({
+      grupo: "periodo",
+      rotulo: "Período",
+      valor: "periodo",
+      texto: `${f.de || "início"} → ${f.ate || "fim"}`,
+    });
   }
 
   function removePill(grupo: string, valor: string) {
     if (grupo === "tipo") setF((p) => ({ ...p, tipo: "todos" }));
-    else toggle(grupo as keyof Omit<Filtros, "tipo">, valor);
+    else if (grupo === "periodo") setF((p) => ({ ...p, de: "", ate: "" }));
+    else toggle(grupo as GrupoLista, valor);
   }
 
-  // ── KPIs ────────────────────────────────────────────────────────────
-  const totalHrs = rows.reduce((a, r) => a + r.h, 0);
-  const billHrs = rows.filter((r) => r.b).reduce((a, r) => a + r.h, 0);
-  const nonBill = totalHrs - billHrs;
-  const teamCharg = totalHrs > 0 ? Math.round((billHrs / totalHrs) * 100) : 0;
+  // ── Medidas ─────────────────────────────────────────────────────────
+  const horasPreenchidas = rows.reduce((a, r) => a + r.h, 0);
+  const horasFaturaveis = rows.filter((r) => r.b).reduce((a, r) => a + r.h, 0);
+  const nonBill = horasPreenchidas - horasFaturaveis;
+  const horasDisponiveis = capacidadeFiltrada.reduce((a, c) => a + c.horas, 0);
+  const pctPreenchimento = horasDisponiveis > 0 ? (horasPreenchidas / horasDisponiveis) * 100 : 0;
+  const pctChargeability = horasPreenchidas > 0 ? (horasFaturaveis / horasPreenchidas) * 100 : 0;
+
   const colabs = useMemo(() => [...new Set(rows.map((r) => r.c))].sort(), [rows]);
   const colabChargs = colabs.map((c) => {
     const cr = rows.filter((r) => r.c === c);
@@ -141,7 +205,82 @@ export default function Timesheet() {
   const acima = colabChargs.filter((v) => v >= CHARGE_TARGET).length;
   const abaixo = colabChargs.filter((v) => v < CHARGE_TARGET).length;
 
-  // ── Ranking ─────────────────────────────────────────────────────────
+  // ── Séries dos visuais do BI ────────────────────────────────────────
+  const porColabPreenchidas = useMemo(() => {
+    const m: Record<string, number> = {};
+    rows.forEach((r) => (m[r.c] = (m[r.c] || 0) + r.h));
+    return Object.entries(m).map(([value, total]) => ({ value, label: value, total }));
+  }, [rows]);
+
+  const porColabFaturaveis = useMemo(() => {
+    const m: Record<string, number> = {};
+    rows.filter((r) => r.b).forEach((r) => (m[r.c] = (m[r.c] || 0) + r.h));
+    return Object.entries(m).map(([value, total]) => ({ value, label: value, total }));
+  }, [rows]);
+
+  const porCliente = useMemo(() => {
+    const m: Record<string, number> = {};
+    rows.filter((r) => r.b).forEach((r) => (m[r.cl] = (m[r.cl] || 0) + r.h));
+    return Object.entries(m).map(([value, total]) => ({ value, label: value, total }));
+  }, [rows]);
+
+  const porCategoria = useMemo(() => {
+    const m: Record<string, number> = {};
+    rows.forEach((r) => (m[r.cat || "(Em branco)"] = (m[r.cat || "(Em branco)"] || 0) + r.h));
+    return Object.entries(m).map(([value, total]) => ({
+      value: value === "(Em branco)" ? "" : value,
+      label: value,
+      total,
+    }));
+  }, [rows]);
+
+  /** Série histórica por MêsAno, no formato do relatório ("2026 1"). */
+  const serie = useMemo(() => {
+    const chaves = [...new Set(rows.map((r) => `${r.a}|${r.mo}`))].sort((x, y) => {
+      const [ax, mx] = x.split("|").map(Number);
+      const [ay, my] = y.split("|").map(Number);
+      return ax - ay || mx - my;
+    });
+    return chaves.map((k) => {
+      const [ano, mo] = k.split("|").map(Number);
+      const mr = rows.filter((r) => r.a === ano && r.mo === mo);
+      const t = mr.reduce((a, r) => a + r.h, 0);
+      const b = mr.filter((r) => r.b).reduce((a, r) => a + r.h, 0);
+      const disp = capacidadeFiltrada
+        .filter((c) => c.a === ano && c.mo === mo)
+        .reduce((a, c) => a + c.horas, 0);
+      return {
+        label: `${ano} ${mo}`,
+        chargeability: t > 0 ? Math.round((b / t) * 100) : null,
+        preenchimento: disp > 0 ? Math.round((t / disp) * 100) : null,
+      };
+    });
+  }, [rows, capacidadeFiltrada]);
+
+  /** Matriz Nome × Categoria com totais por linha e coluna. */
+  const matriz = useMemo(() => {
+    const cats = [...new Set(rows.map((r) => r.cat).filter(Boolean))].sort();
+    const nomes = [...new Set(rows.map((r) => r.c))].sort();
+    const celulas: Record<string, Record<string, number>> = {};
+    rows.forEach((r) => {
+      if (!r.cat) return;
+      celulas[r.c] = celulas[r.c] || {};
+      celulas[r.c][r.cat] = (celulas[r.c][r.cat] || 0) + r.h;
+    });
+    const linhas = nomes.map((nome) => {
+      const valores = cats.map((c) => celulas[nome]?.[c] ?? 0);
+      return { nome, valores, total: valores.reduce((a, v) => a + v, 0) };
+    });
+    const totaisCol = cats.map((_, i) => linhas.reduce((a, l) => a + l.valores[i], 0));
+    return {
+      cats,
+      linhas,
+      totaisCol,
+      totalGeral: totaisCol.reduce((a, v) => a + v, 0),
+    };
+  }, [rows]);
+
+  // ── Ranking (tabela do dashboard) ───────────────────────────────────
   const rank = useMemo(() => {
     const list = colabs.map((colab) => {
       const cr = rows.filter((r) => r.c === colab);
@@ -190,6 +329,14 @@ export default function Timesheet() {
           </div>
           <div className="mono" style={{ fontSize: 11, color: "var(--text3)", marginTop: 3 }}>
             Meta chargeability: <span style={{ color: "#FF9B00" }}>≥{CHARGE_TARGET}%</span>
+            {!temCapacidade && (
+              <>
+                {" · "}
+                <span title='Importe a aba "Capacidade" para habilitar Horas Disponíveis e % Preenchimento'>
+                  sem base de horas disponíveis
+                </span>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -208,11 +355,42 @@ export default function Timesheet() {
           borderRadius: 10,
         }}
       >
+        {temTime && (
+          <FilterDropdown
+            label="Time"
+            options={allTimes.map((t) => ({ value: t, label: t }))}
+            selected={f.times}
+            onToggle={(v) => toggle("times", v)}
+          />
+        )}
+        {temStatus && (
+          <FilterDropdown
+            label="Status Colab."
+            options={allStatus.map((s) => ({ value: s, label: s }))}
+            selected={f.sts}
+            onToggle={(v) => toggle("sts", v)}
+          />
+        )}
         <FilterDropdown
           label="Colaborador"
           options={allColabs.map((c) => ({ value: c, label: c }))}
           selected={f.colabs}
           onToggle={(v) => toggle("colabs", v)}
+          searchable
+        />
+        <FilterDropdown
+          label="Cliente / Contrato"
+          wide
+          searchable
+          options={allClientes.map((c) => ({ value: c, label: stripPrefix(c) }))}
+          selected={f.clientes}
+          onToggle={(v) => toggle("clientes", v)}
+        />
+        <FilterDropdown
+          label="Categoria"
+          options={catOptions}
+          selected={f.cats}
+          onToggle={(v) => toggle("cats", v)}
         />
         <FilterDropdown
           label="Ano"
@@ -227,12 +405,6 @@ export default function Timesheet() {
           onToggle={(v) => toggle("meses", v)}
         />
         <FilterDropdown
-          label="Categoria"
-          options={catOptions}
-          selected={f.cats}
-          onToggle={(v) => toggle("cats", v)}
-        />
-        <FilterDropdown
           label="Tipo"
           mode="single"
           options={[
@@ -243,14 +415,31 @@ export default function Timesheet() {
           selected={f.tipo === "todos" ? [] : [f.tipo]}
           onToggle={(v) => setF((p) => ({ ...p, tipo: v as Tipo }))}
         />
-        <FilterDropdown
-          label="Cliente / Contrato"
-          wide
-          searchable
-          options={allClientes.map((c) => ({ value: c, label: stripPrefix(c) }))}
-          selected={f.clientes}
-          onToggle={(v) => toggle("clientes", v)}
-        />
+
+        {/* Período (equivale ao slicer "Date" do relatório) */}
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <span style={{ fontSize: 10, color: "var(--text3)" }}>Período</span>
+          <input
+            type="date"
+            className="filter-sel"
+            style={{ width: "auto", margin: 0, padding: "5px 7px", fontSize: 11 }}
+            min={periodo.min}
+            max={periodo.max}
+            value={f.de}
+            onChange={(e) => setF((p) => ({ ...p, de: e.target.value }))}
+          />
+          <span style={{ fontSize: 10, color: "var(--text3)" }}>até</span>
+          <input
+            type="date"
+            className="filter-sel"
+            style={{ width: "auto", margin: 0, padding: "5px 7px", fontSize: 11 }}
+            min={periodo.min}
+            max={periodo.max}
+            value={f.ate}
+            onChange={(e) => setF((p) => ({ ...p, ate: e.target.value }))}
+          />
+        </div>
+
         <div style={{ width: 1, height: 24, background: "var(--border2)", margin: "0 2px" }} />
         <button className="btn-link" onClick={() => setF(FILTROS_VAZIOS)}>
           ✕ Limpar
@@ -262,39 +451,53 @@ export default function Timesheet() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(5,1fr)",
+          gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))",
           gap: 10,
           marginBottom: 16,
         }}
       >
+        {temCapacidade && (
+          <KpiCard
+            label="Horas Disponíveis"
+            value={fmtMil(horasDisponiveis)}
+            sub="capacidade no período"
+            grad="linear-gradient(90deg,#6C3FFF,#4F8EFF)"
+          />
+        )}
         <KpiCard
-          label="Horas Totais"
-          value={Math.round(totalHrs) + "h"}
+          label="Horas Preenchidas"
+          value={fmtMil(horasPreenchidas)}
           sub={rows.length.toLocaleString("pt-BR") + " registros"}
-          grad="linear-gradient(90deg,#6C3FFF,#4F8EFF)"
+          grad="linear-gradient(90deg,#4F8EFF,#20C0FF)"
         />
         <KpiCard
-          label="Horas Billable"
-          value={Math.round(billHrs) + "h"}
+          label="Horas Faturáveis"
+          value={fmtMil(horasFaturaveis)}
           sub="em clientes/projetos"
           grad="linear-gradient(90deg,#00D4A0,#20C0FF)"
         />
         <KpiCard
           label="Non-Billable"
-          value={Math.round(nonBill) + "h"}
+          value={fmtMil(nonBill)}
           sub="internas ITP"
           grad="linear-gradient(90deg,#FF5C6A,#FF8C00)"
         />
-        <KpiCard
-          label="Chargeability"
-          value={teamCharg + "%"}
-          sub="média filtrada"
-          grad={
-            teamCharg >= CHARGE_TARGET
-              ? "linear-gradient(90deg,#00D4A0,#20C0FF)"
-              : "linear-gradient(90deg,#FF5C6A,#FF8C00)"
-          }
-        />
+        {temCapacidade && (
+          <div className="kpi-card">
+            <div className="kpi-accent" style={{ background: "linear-gradient(90deg,#6C3FFF,#4F8EFF)" }} />
+            <div className="kpi-body">
+              <div className="kpi-label">% Preenchimento</div>
+              <Gauge value={pctPreenchimento} color="#4F8EFF" />
+            </div>
+          </div>
+        )}
+        <div className="kpi-card">
+          <div className="kpi-accent" style={{ background: "linear-gradient(90deg,#00D4A0,#20C0FF)" }} />
+          <div className="kpi-body">
+            <div className="kpi-label">% Chargeability</div>
+            <Gauge value={pctChargeability} color={chargColor(pctChargeability)} />
+          </div>
+        </div>
         <KpiCard
           label={`Meta ≥${CHARGE_TARGET}%`}
           value={`${acima} ✅ / ${abaixo} 🔴`}
@@ -303,7 +506,137 @@ export default function Timesheet() {
         />
       </div>
 
-      {/* Gráficos — linha 1 */}
+      {/* Barras horizontais — clique filtra todos os visuais */}
+      <div className="section-title" style={{ marginBottom: 10 }}>
+        Distribuição de Horas
+        <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0, color: "var(--text3)", marginLeft: 8 }}>
+          clique em uma barra para filtrar
+        </span>
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))",
+          gap: 16,
+          marginBottom: 16,
+        }}
+      >
+        <RankBars
+          title="Horas Preenchidas"
+          items={porColabPreenchidas}
+          color="#4F8EFF"
+          selected={f.colabs}
+          onPick={(v) => toggle("colabs", v)}
+        />
+        <RankBars
+          title="Horas faturáveis por Colaborador"
+          items={porColabFaturaveis}
+          color="#00C8A0"
+          selected={f.colabs}
+          onPick={(v) => toggle("colabs", v)}
+        />
+        <RankBars
+          title="Horas faturáveis por Cliente"
+          items={porCliente.map((i) => ({ ...i, label: stripPrefix(i.label) }))}
+          color="#20C0FF"
+          selected={f.clientes}
+          onPick={(v) => toggle("clientes", v)}
+        />
+        <RankBars
+          title="Horas por Categoria"
+          items={porCategoria.map((i) => ({ ...i, label: stripCatPrefix(i.label) }))}
+          color="#6C3FFF"
+          selected={f.cats}
+          onPick={(v) => v && toggle("cats", v)}
+        />
+      </div>
+
+      {/* Série histórica */}
+      <div className="chart-card" style={{ marginBottom: 16 }}>
+        <div className="chart-header">
+          <span className="chart-title">
+            Série histórica {temCapacidade ? "% de preenchimento e chargeability" : "% de chargeability"}
+          </span>
+          <span className="mono" style={{ fontSize: 9, color: "var(--text3)" }}>
+            MêsAno
+          </span>
+        </div>
+        <div style={{ position: "relative", height: 230 }}>
+          <ChartCanvas
+            deps={[serie]}
+            build={(ctx, canvas) => {
+              const h = canvas.offsetHeight || 230;
+              const gPre = ctx.createLinearGradient(0, 0, 0, h);
+              gPre.addColorStop(0, "rgba(108,63,255,0.35)");
+              gPre.addColorStop(1, "rgba(108,63,255,0)");
+              const gChg = ctx.createLinearGradient(0, 0, 0, h);
+              gChg.addColorStop(0, "rgba(32,192,255,0.35)");
+              gChg.addColorStop(1, "rgba(32,192,255,0)");
+              const datasets = [];
+              if (temCapacidade) {
+                datasets.push({
+                  label: "% Preenchimento",
+                  data: serie.map((s) => s.preenchimento),
+                  borderColor: "#6C3FFF",
+                  borderWidth: 2,
+                  pointRadius: 3,
+                  pointBackgroundColor: "#6C3FFF",
+                  backgroundColor: gPre,
+                  fill: true,
+                  tension: 0.3,
+                  spanGaps: true,
+                });
+              }
+              datasets.push({
+                label: "% Chargeability",
+                data: serie.map((s) => s.chargeability),
+                borderColor: "#20C0FF",
+                borderWidth: 2,
+                pointRadius: 3,
+                pointBackgroundColor: "#20C0FF",
+                backgroundColor: gChg,
+                fill: true,
+                tension: 0.3,
+                spanGaps: true,
+              });
+              return {
+                type: "line",
+                data: { labels: serie.map((s) => s.label), datasets },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { labels: { color: "#9096B0", font: { size: 10 }, boxWidth: 10 } },
+                    datalabels: { display: false },
+                    tooltip: {
+                      mode: "index",
+                      intersect: false,
+                      callbacks: {
+                        label: (c: { dataset: { label?: string }; parsed: { y: number | null } }) =>
+                          "  " + c.dataset.label + ": " + (c.parsed.y ?? 0) + "%",
+                      },
+                    },
+                  },
+                  scales: {
+                    x: { grid: { display: false }, ticks: { color: "#9096B0", font: { size: 10 } } },
+                    y: {
+                      beginAtZero: true,
+                      grid: { color: "rgba(128,136,176,0.12)" },
+                      ticks: {
+                        color: "#9096B0",
+                        font: { size: 10 },
+                        callback: (v: string | number) => v + "%",
+                      },
+                    },
+                  },
+                },
+              };
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Chargeability por colaborador + billable/non-billable */}
       <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 16, marginBottom: 16 }}>
         <div className="chart-card">
           <div className="chart-header">
@@ -363,7 +696,7 @@ export default function Timesheet() {
                       y: {
                         beginAtZero: true,
                         max: 100,
-                        grid: { color: "rgba(255,255,255,0.04)" },
+                        grid: { color: "rgba(128,136,176,0.12)" },
                         ticks: {
                           color: "#9096B0",
                           font: { size: 10 },
@@ -424,7 +757,7 @@ export default function Timesheet() {
                     labels: ["Billable", "Non-Billable"],
                     datasets: [
                       {
-                        data: [Math.round(billHrs), Math.round(nonBill)],
+                        data: [Math.round(horasFaturaveis), Math.round(nonBill)],
                         backgroundColor: [gB, gN],
                         borderWidth: 0,
                         hoverOffset: 5,
@@ -441,7 +774,7 @@ export default function Timesheet() {
                         color: "#fff",
                         font: { size: 10, weight: 600 },
                         formatter: (v: number) => {
-                          const tot = Math.round(billHrs) + Math.round(nonBill);
+                          const tot = Math.round(horasFaturaveis) + Math.round(nonBill);
                           return tot > 0 ? Math.round((v / tot) * 100) + "%" : "0%";
                         },
                       },
@@ -455,208 +788,83 @@ export default function Timesheet() {
             <div className="chart-legend">
               <div className="legend-item">
                 <div className="legend-dot" style={{ background: "#00C8A0" }} />
-                Billable ({Math.round(billHrs)}h)
+                Billable ({fmtH(horasFaturaveis)})
               </div>
               <div className="legend-item">
                 <div className="legend-dot" style={{ background: "#FF5C6A" }} />
-                Non-Bill. ({Math.round(nonBill)}h)
+                Non-Bill. ({fmtH(nonBill)})
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Gráficos — linha 2 */}
-      <div
-        style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}
-      >
-        <div className="chart-card">
-          <div className="chart-header">
-            <span className="chart-title">Evolução Mensal (Chargeability)</span>
-          </div>
-          <div style={{ position: "relative", height: 180 }}>
-            <ChartCanvas
-              deps={[rows]}
-              build={(ctx, canvas) => {
-                const h = canvas.offsetHeight || 180;
-                const anos = [...new Set(rows.map((r) => r.a))].sort();
-                const LINE_COLS = ["#4F8EFF", "#00C8A0", "#FF9B00", "#FF40A0"];
-                const datasets = anos.map((ano, i) => {
-                  const col = LINE_COLS[i % LINE_COLS.length];
-                  const g = ctx.createLinearGradient(0, 0, 0, h);
-                  g.addColorStop(0, col + "55");
-                  g.addColorStop(1, col + "00");
-                  const data = MESES.map((mes) => {
-                    const mr = rows.filter((r) => r.a === ano && r.m === mes);
-                    const t = mr.reduce((a, r) => a + r.h, 0);
-                    const b = mr.filter((r) => r.b).reduce((a, r) => a + r.h, 0);
-                    return t > 0 ? Math.round((b / t) * 100) : null;
-                  });
-                  return {
-                    label: String(ano),
-                    data,
-                    borderColor: col,
-                    borderWidth: 2,
-                    pointRadius: 4,
-                    pointBackgroundColor: col,
-                    pointBorderColor: "transparent",
-                    backgroundColor: g,
-                    fill: true,
-                    tension: 0.4,
-                    spanGaps: true,
-                  };
-                });
-                return {
-                  type: "line",
-                  data: { labels: MES_ABBR, datasets },
-                  options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: { labels: { color: "#9096B0", font: { size: 10 }, boxWidth: 10 } },
-                      datalabels: { display: false },
-                    },
-                    scales: {
-                      x: { grid: { display: false }, ticks: { color: "#9096B0", font: { size: 11 } } },
-                      y: {
-                        beginAtZero: true,
-                        max: 100,
-                        grid: { color: "rgba(255,255,255,0.04)" },
-                        ticks: {
-                          color: "#9096B0",
-                          font: { size: 10 },
-                          callback: (v: string | number) => v + "%",
-                        },
-                      },
-                    },
-                  },
-                };
-              }}
-            />
-          </div>
+      {/* Matriz Nome × Categoria */}
+      <div className="table-card">
+        <div className="table-header">
+          <span className="table-title">Horas por Colaborador e Categoria</span>
+          <span className="table-count">{matriz.linhas.length} colaboradores</span>
         </div>
-
-        <div className="chart-card">
-          <div className="chart-header">
-            <span className="chart-title">Horas por Categoria</span>
-          </div>
-          <div style={{ position: "relative", height: 180 }}>
-            <ChartCanvas
-              deps={[rows]}
-              build={(ctx, canvas) => {
-                const h = canvas.offsetHeight || 180;
-                const catTotals = allCats
-                  .map((cat) => ({
-                    cat,
-                    h: rows.filter((r) => r.cat === cat).reduce((a, r) => a + r.h, 0),
-                  }))
-                  .filter((x) => x.h > 0)
-                  .sort((a, b) => b.h - a.h);
-                const grads = catTotals.map(({ cat }) => {
-                  const col = TS_CAT_COLORS[cat] || "#6C3FFF";
-                  const g = ctx.createLinearGradient(0, 0, 0, h);
-                  g.addColorStop(0, col + "EE");
-                  g.addColorStop(1, col + "44");
-                  return g;
-                });
-                return {
-                  type: "bar",
-                  data: {
-                    labels: catTotals.map((x) => stripCatPrefix(x.cat)),
-                    datasets: [
-                      {
-                        data: catTotals.map((x) => Math.round(x.h)),
-                        backgroundColor: grads,
-                        borderRadius: 6,
-                        borderSkipped: false,
-                        maxBarThickness: 48,
-                      },
-                    ],
-                  },
-                  options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis: "y",
-                    plugins: {
-                      legend: { display: false },
-                      datalabels: {
-                        color: "#fff",
-                        font: { size: 10, weight: 600 },
-                        anchor: "end",
-                        align: "end",
-                        formatter: (v: number) => v + "h",
-                      },
-                    },
-                    scales: {
-                      x: { display: false, beginAtZero: true },
-                      y: { grid: { display: false }, ticks: { color: "#9096B0", font: { size: 10 } } },
-                    },
-                  },
-                };
-              }}
-            />
-          </div>
-        </div>
-
-        <div className="chart-card">
-          <div className="chart-header">
-            <span className="chart-title">Top Clientes Billable</span>
-          </div>
-          <div style={{ position: "relative", height: 180 }}>
-            <ChartCanvas
-              deps={[rows]}
-              build={(ctx, canvas) => {
-                const h = canvas.offsetHeight || 180;
-                const totals: Record<string, number> = {};
-                rows.filter((r) => r.b).forEach((r) => (totals[r.cl] = (totals[r.cl] || 0) + r.h));
-                const top10 = Object.entries(totals)
-                  .sort((a, b) => b[1] - a[1])
-                  .slice(0, 10);
-                const g = ctx.createLinearGradient(0, 0, h * 2, 0);
-                g.addColorStop(0, "#20C0FFEE");
-                g.addColorStop(1, "#4F8EFF55");
-                return {
-                  type: "bar",
-                  data: {
-                    labels: top10.map(([c]) => stripPrefix(c).slice(0, 10)),
-                    datasets: [
-                      {
-                        data: top10.map(([, hrs]) => Math.round(hrs)),
-                        backgroundColor: g,
-                        borderRadius: 6,
-                        borderSkipped: false,
-                        maxBarThickness: 28,
-                      },
-                    ],
-                  },
-                  options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis: "y",
-                    plugins: {
-                      legend: { display: false },
-                      datalabels: {
-                        color: "#fff",
-                        font: { size: 9, weight: 600 },
-                        anchor: "end",
-                        align: "end",
-                        formatter: (v: number) => v + "h",
-                      },
-                    },
-                    scales: {
-                      x: { display: false, beginAtZero: true },
-                      y: { grid: { display: false }, ticks: { color: "#9096B0", font: { size: 9 } } },
-                    },
-                  },
-                };
-              }}
-            />
-          </div>
+        <div style={{ overflowX: "auto" }}>
+          <table>
+            <thead>
+              <tr>
+                <th style={{ minWidth: 160 }}>Nome</th>
+                {matriz.cats.map((c) => (
+                  <th
+                    key={c}
+                    style={{ textAlign: "right", minWidth: 110 }}
+                    title={"Filtrar por " + c}
+                    onClick={() => toggle("cats", c)}
+                  >
+                    {c}
+                  </th>
+                ))}
+                <th style={{ textAlign: "right", minWidth: 90 }}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {matriz.linhas.map((l) => (
+                <tr key={l.nome}>
+                  <td
+                    style={{ cursor: "pointer", fontWeight: 500 }}
+                    title={"Filtrar por " + l.nome}
+                    onClick={() => toggle("colabs", l.nome)}
+                  >
+                    {l.nome}
+                  </td>
+                  {l.valores.map((v, i) => (
+                    <td key={i} className="mono" style={{ textAlign: "right", fontSize: 11 }}>
+                      {v > 0 ? fmt2(v) : ""}
+                    </td>
+                  ))}
+                  <td className="mono" style={{ textAlign: "right", fontWeight: 600, color: "var(--text)" }}>
+                    {fmt2(l.total)}
+                  </td>
+                </tr>
+              ))}
+              <tr>
+                <td style={{ fontWeight: 600, color: "var(--text)" }}>Total</td>
+                {matriz.totaisCol.map((v, i) => (
+                  <td
+                    key={i}
+                    className="mono"
+                    style={{ textAlign: "right", fontWeight: 600, color: "var(--text2)" }}
+                  >
+                    {v > 0 ? fmt2(v) : ""}
+                  </td>
+                ))}
+                <td className="mono" style={{ textAlign: "right", fontWeight: 700, color: "var(--text)" }}>
+                  {fmt2(matriz.totalGeral)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
       {/* Cards por colaborador */}
-      <div className="section-title" style={{ marginBottom: 12 }}>
+      <div className="section-title" style={{ margin: "20px 0 12px" }}>
         Detalhamento Individual
       </div>
       <div
@@ -917,7 +1125,6 @@ function ColabCard({
           const b = mr.filter((r) => r.b).reduce((a, r) => a + r.h, 0);
           const v = t > 0 ? Math.round((b / t) * 100) : null;
           const dc = v === null ? "#6E748A" : chargColor(v);
-          const inicial = MES_ABBR[i];
           return (
             <div key={mes} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
               <div className="mono" style={{ fontSize: 9, color: dc, fontWeight: 600 }}>
@@ -937,7 +1144,7 @@ function ColabCard({
                   color: dc,
                 }}
               >
-                {inicial}
+                {MES_ABBR[i]}
               </div>
             </div>
           );

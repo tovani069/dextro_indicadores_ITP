@@ -2,7 +2,7 @@ import type { WorkBook } from "xlsx";
 
 import { MES_ABBR } from "./constants";
 import { mesNome, mesNum, norm, parseBool, parseNum } from "./format";
-import type { OrcPessoal, OrcRecord, PlanoRow, TSRow } from "./types";
+import type { CapacidadeRow, OrcPessoal, OrcRecord, PlanoRow, TSRow } from "./types";
 
 type SheetRow = Record<string, unknown>;
 
@@ -50,6 +50,8 @@ export async function parseTimesheet(wb: WorkBook): Promise<TSRow[]> {
     if (!c) return;
     const m = String(g("mes", "m") || "");
     const mo = mesNum(g("mesnum", "mo", "mes num", "mês num") || m);
+    const time = String(g("time", "equipe") || "").trim();
+    const st = String(g("status colab.", "status colab", "status") || "").trim();
     out.push({
       c: String(c).trim(),
       cl: String(g("cliente", "cl") || "").trim(),
@@ -60,6 +62,37 @@ export async function parseTimesheet(wb: WorkBook): Promise<TSRow[]> {
       h: parseNum(g("horas", "h")),
       b: parseBool(g("billable", "faturavel", "faturável", "b")),
       d: String(g("data", "d") || "").trim(),
+      ...(time ? { time } : {}),
+      ...(st ? { st } : {}),
+    });
+  });
+  return out;
+}
+
+/**
+ * Aba "Capacidade": horas disponíveis por colaborador e mês.
+ * Opcional — sem ela, "% Preenchimento" e "Horas Disponíveis" não são exibidos.
+ */
+export async function parseCapacidade(wb: WorkBook): Promise<CapacidadeRow[]> {
+  const nome = ["Capacidade", "Horas Disponíveis", "Horas Disponiveis", "Disponibilidade"].find(
+    (n) => wb.Sheets[n],
+  );
+  if (!nome) return [];
+  const XLSX = await xlsx();
+  const json: SheetRow[] = XLSX.utils.sheet_to_json(wb.Sheets[nome], { defval: null });
+  const out: CapacidadeRow[] = [];
+  json.forEach((row) => {
+    const g = rowGetter(row);
+    const c = g("colaborador", "c", "nome");
+    if (!c) return;
+    const mo = mesNum(g("mesnum", "mo", "mes", "mês") ?? "");
+    const horas = parseNum(g("horas disponiveis", "horas disponíveis", "horas", "capacidade"));
+    if (!mo || !horas) return;
+    out.push({
+      c: String(c).trim(),
+      a: parseInt(String(parseNum(g("ano", "a")))) || 0,
+      mo,
+      horas,
     });
   });
   return out;
@@ -166,7 +199,7 @@ async function writeWorkbook(filename: string, sheets: Sheet[]) {
   XLSX.writeFile(wb, filename);
 }
 
-export function exportTimesheet(rows: TSRow[]) {
+export function exportTimesheet(rows: TSRow[], capacidade: CapacidadeRow[] = []) {
   return writeWorkbook("modelo_timesheet_itp.xlsx", [
     {
       name: "Timesheet",
@@ -180,11 +213,26 @@ export function exportTimesheet(rows: TSRow[]) {
         Horas: r.h,
         Billable: r.b ? "Sim" : "Não",
         Data: r.d,
+        Time: r.time ?? "",
+        "Status Colab.": r.st ?? "",
       })),
       cols: [
         { wch: 20 }, { wch: 16 }, { wch: 24 }, { wch: 12 }, { wch: 8 },
-        { wch: 7 }, { wch: 8 }, { wch: 10 }, { wch: 12 },
+        { wch: 7 }, { wch: 8 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 14 },
       ],
+    },
+    {
+      // Vazia no modelo: preencha para habilitar "Horas Disponíveis" e "% Preenchimento".
+      name: "Capacidade",
+      rows: capacidade.length
+        ? capacidade.map((r) => ({
+            Colaborador: r.c,
+            Ano: r.a,
+            MesNum: r.mo,
+            "Horas Disponíveis": r.horas,
+          }))
+        : [{ Colaborador: "", Ano: "", MesNum: "", "Horas Disponíveis": "" }],
+      cols: [{ wch: 20 }, { wch: 7 }, { wch: 8 }, { wch: 18 }],
     },
   ]);
 }

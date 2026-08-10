@@ -18,6 +18,26 @@ export type TSRow = {
   b: boolean;
   /** Data (YYYY-MM-DD) */
   d: string;
+  /** Time / equipe do colaborador (ex.: MDR, Suporte) — opcional */
+  time?: string;
+  /** Status do colaborador (Ativo / Inativo) — opcional */
+  st?: string;
+};
+
+/**
+ * Horas disponíveis (capacidade) por colaborador e mês.
+ * É a base do "% Preenchimento" = horas preenchidas ÷ horas disponíveis.
+ * Fica vazio até ser importado pela aba "Capacidade" da planilha.
+ */
+export type CapacidadeRow = {
+  /** Colaborador */
+  c: string;
+  /** Ano */
+  a: number;
+  /** Número do mês (1-12) */
+  mo: number;
+  /** Horas disponíveis no mês */
+  horas: number;
 };
 
 /** Uma ação do plano de ação. */

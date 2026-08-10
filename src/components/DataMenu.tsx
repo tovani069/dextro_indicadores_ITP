@@ -7,6 +7,7 @@ import {
   exportOrcamento,
   exportPlano,
   exportTimesheet,
+  parseCapacidade,
   parseOrcamento,
   parsePlano,
   parseTimesheet,
@@ -82,7 +83,7 @@ export default function DataMenu({ dataset, onClose }: Props) {
       if (dataset === "timesheet") {
         const rows = await parseTimesheet(wb);
         if (!rows.length) throw new Error('Nenhum lançamento encontrado. Confira a coluna "Colaborador".');
-        data.setTimesheet(rows);
+        data.setTimesheet(rows, await parseCapacidade(wb));
       } else if (dataset === "plano") {
         const rows = await parsePlano(wb);
         if (!rows.length) throw new Error('Nenhuma atividade encontrada. Confira a coluna "Atividade".');
@@ -106,7 +107,7 @@ export default function DataMenu({ dataset, onClose }: Props) {
   }
 
   function onExport() {
-    if (dataset === "timesheet") exportTimesheet(data.timesheet);
+    if (dataset === "timesheet") exportTimesheet(data.timesheet, data.capacidade);
     else if (dataset === "plano") exportPlano(data.plano);
     else exportOrcamento(data.orcRecords, data.orcPessoal);
     onClose();

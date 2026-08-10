@@ -33,6 +33,8 @@ src/
     FilterPills.tsx     # chips dos filtros ativos
     KpiCard.tsx
     charts/ChartCanvas.tsx   # wrapper do Chart.js com ciclo de vida React
+    charts/Gauge.tsx         # medidor semicircular (% Preenchimento / % Chargeability)
+    charts/RankBars.tsx      # barras horizontais com rolagem e clique para filtrar
     sections/
       PlanoAcao.tsx
       Indicadores.tsx
@@ -69,6 +71,19 @@ No menu **⋮** ao lado de cada seção da sidebar é possível:
 
 Para atualizar os dados de forma permanente (para todos os usuários), edite os JSON em `src/data/`
 e faça um novo deploy.
+
+### Timesheet — colunas opcionais
+
+A aba Timesheet reproduz os visuais do relatório de Power BI da operação. Três recursos dependem
+de dados que a base atual ainda não tem e aparecem sozinhos assim que forem importados:
+
+| Recurso | O que é preciso |
+| --- | --- |
+| Filtro **Time** | coluna `Time` (ou `Equipe`) na aba Timesheet — ex.: MDR, Suporte |
+| Filtro **Status Colab.** | coluna `Status Colab.` (ou `Status`) — ex.: Ativo, Inativo |
+| KPI **Horas Disponíveis** e **% Preenchimento** | aba **Capacidade** com `Colaborador`, `Ano`, `MesNum`, `Horas Disponíveis` |
+
+O modelo exportado já vem com essas colunas e com a aba `Capacidade` em branco, pronta para preencher.
 
 ## Deploy (Vercel)
 
