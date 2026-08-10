@@ -32,6 +32,8 @@ export default function FilterDropdown({
   wide = false,
 }: Props) {
   const [open, setOpen] = useState(false);
+  // O menu continua montado durante a animação de saída.
+  const [montado, setMontado] = useState(false);
   const [query, setQuery] = useState("");
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -40,9 +42,29 @@ export default function FilterDropdown({
     function onDocClick(e: MouseEvent) {
       if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
     }
+    function onEsc(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
     document.addEventListener("click", onDocClick);
-    return () => document.removeEventListener("click", onDocClick);
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("click", onDocClick);
+      document.removeEventListener("keydown", onEsc);
+    };
   }, [open]);
+
+  useEffect(() => {
+    if (open) {
+      setMontado(true);
+      return;
+    }
+    if (!montado) return;
+    const t = setTimeout(() => {
+      setMontado(false);
+      setQuery("");
+    }, 170); // acompanha a duração de .anim-recolhe
+    return () => clearTimeout(t);
+  }, [open, montado]);
 
   const hasVal =
     mode === "single" ? selected.length > 0 && selected[0] !== "" : selected.length > 0;
@@ -74,40 +96,47 @@ export default function FilterDropdown({
         <span className="ts-dd-label">{btnLabel}</span>
         <span className="ts-dd-arrow">▾</span>
       </button>
-      <div className={"ts-dd-menu" + (wide ? " ts-dd-wide" : "") + (open ? " ts-dd-open" : "")}>
-        {searchable && (
-          <input
-            className="ts-dd-search"
-            placeholder="Buscar…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        )}
-        {visible.map((o) => (
-          <label
-            key={o.value}
-            className={
-              "ts-dd-item" + (selected.includes(o.value) ? " ts-dd-selected" : "")
-            }
-            onClick={() => onToggle(o.value)}
-          >
-            {o.color && (
-              <span
-                style={{
-                  width: 7,
-                  height: 7,
-                  borderRadius: "50%",
-                  background: o.color,
-                  flexShrink: 0,
-                  display: "inline-block",
-                  marginRight: 5,
-                }}
-              />
-            )}
-            {o.label}
-          </label>
-        ))}
-      </div>
+      {montado && (
+        <div
+          className={
+            "ts-dd-menu" + (wide ? " ts-dd-wide" : "") + (open ? " anim-sobe" : " anim-recolhe")
+          }
+          role="listbox"
+        >
+          {searchable && (
+            <input
+              className="ts-dd-search"
+              placeholder="Buscar…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          )}
+          {visible.map((o, i) => (
+            <label
+              key={o.value}
+              className={"ts-dd-item" + (selected.includes(o.value) ? " ts-dd-selected" : "")}
+              // cascata curta, só nos primeiros itens — listas longas não podem demorar
+              style={{ animationDelay: open ? `${Math.min(i, 8) * 22}ms` : undefined }}
+              onClick={() => onToggle(o.value)}
+            >
+              {o.color && (
+                <span
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: "50%",
+                    background: o.color,
+                    flexShrink: 0,
+                    display: "inline-block",
+                    marginRight: 5,
+                  }}
+                />
+              )}
+              {o.label}
+            </label>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

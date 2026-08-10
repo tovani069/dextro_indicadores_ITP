@@ -159,12 +159,12 @@ em.hl{background:rgba(79,142,255,0.2);color:var(--text);font-style:normal;border
 .ts-dd-btn.ts-dd-active .ts-dd-arrow{transform:rotate(180deg)}
 .ts-dd-label{max-width:120px;overflow:hidden;text-overflow:ellipsis}
 .ts-dd-menu{
-  display:none;position:absolute;top:calc(100% + 5px);left:0;z-index:200;
+  position:absolute;top:calc(100% + 5px);left:0;z-index:200;
   background:var(--bg2);border:1px solid var(--border2);border-radius:9px;
   padding:5px 0;min-width:170px;max-height:260px;overflow-y:auto;
   box-shadow:0 8px 28px rgba(0,0,0,.35);
+  transform-origin:top left;
 }
-.ts-dd-menu.ts-dd-open{display:block}
 .ts-dd-wide{min-width:240px}
 .ts-dd-search{
   display:block;width:calc(100% - 16px);margin:6px 8px 4px;
@@ -230,3 +230,42 @@ em.hl{background:rgba(79,142,255,0.2);color:var(--text);font-style:normal;border
 .btn-link{background:transparent;border:none;color:var(--text3);font-size:11px;cursor:pointer;
   padding:4px 8px;border-radius:6px;font-family:"IBM Plex Sans",sans-serif;white-space:nowrap}
 .btn-link:hover{color:var(--text)}
+
+/* ══════════════════════════════════════════════════════════
+   ANIMAÇÕES — mesma linguagem dos demais produtos Dextro:
+   curtas, com easing de saída suave. Nada pisca, nada salta.
+   ══════════════════════════════════════════════════════════ */
+@keyframes dx-sobe{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@keyframes dx-recolhe{
+  from{opacity:1;transform:translateY(0)}
+  to{opacity:0;transform:translateY(6px)}
+}
+@keyframes dx-surge{
+  from{opacity:0}
+  to{opacity:1}
+}
+.anim-sobe{animation:dx-sobe .42s cubic-bezier(.22,1,.36,1) both}
+/* Enquanto sai, o menu não intercepta cliques. */
+.anim-recolhe{animation:dx-recolhe .16s cubic-bezier(.4,0,1,1) both;pointer-events:none}
+.anim-surge{animation:dx-surge .4s ease-out both}
+
+/* Itens da lista suspensa entram em cascata curta. */
+.ts-dd-menu.anim-sobe .ts-dd-item,
+.ts-dd-menu.anim-sobe .ts-dd-search{
+  animation:dx-surge .28s ease-out both;
+}
+
+/* Realce ao passar o mouse, no mesmo easing */
+.ts-dd-item{transition:background .18s cubic-bezier(.22,1,.36,1),color .18s cubic-bezier(.22,1,.36,1)}
+.ts-dd-btn{transition:border-color .2s cubic-bezier(.22,1,.36,1),background .2s cubic-bezier(.22,1,.36,1)}
+.ts-dd-arrow{transition:transform .3s cubic-bezier(.22,1,.36,1)}
+
+@media (prefers-reduced-motion: reduce){
+  .anim-sobe,.anim-recolhe,.anim-surge,
+  .ts-dd-menu.anim-sobe .ts-dd-item,
+  .ts-dd-menu.anim-sobe .ts-dd-search{animation:none}
+  *{transition-duration:.01ms !important}
+}
