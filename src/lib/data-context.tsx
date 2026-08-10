@@ -16,10 +16,21 @@ import {
   PLANO_SEED,
   TIMESHEET_SEED,
 } from "@/data";
-import { STORAGE_KEYS } from "./constants";
+import { MESES, STORAGE_KEYS } from "./constants";
 import type { CapacidadeRow, OrcPessoal, OrcRecord, PlanoRow, TSRow } from "./types";
 
 export type DatasetKey = "timesheet" | "plano" | "orcamento";
+
+/** De onde vieram os lançamentos exibidos. */
+export type OrigemTimesheet = "smartsheet" | "importado" | "embutido";
+
+/** Resposta de /api/timesheet (o nome do mês é derivado aqui para encurtar o payload). */
+type PayloadApi = {
+  timesheet: (Omit<TSRow, "m"> & { m?: string })[];
+  capacidade: CapacidadeRow[];
+  colaboradores: { c: string; time: string; st: string }[];
+  atualizadoEm: string;
+};
 
 type DataContextValue = {
   timesheet: TSRow[];
@@ -30,6 +41,10 @@ type DataContextValue = {
   orcPessoal: OrcPessoal[];
   /** `false` até o primeiro efeito ler o localStorage (evita mismatch de hidratação). */
   hydrated: boolean;
+  /** Origem dos lançamentos exibidos. */
+  origem: OrigemTimesheet;
+  /** Momento da leitura do Smartsheet (ISO), quando aplicável. */
+  atualizadoEm: string | null;
   setTimesheet: (rows: TSRow[], capacidade?: CapacidadeRow[]) => void;
   setPlano: (rows: PlanoRow[]) => void;
   setOrcamento: (records: OrcRecord[] | null, pessoal: OrcPessoal[] | null) => void;
@@ -79,6 +94,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [orcRecords, setOrcRecordsState] = useState<OrcRecord[]>(ORC_RECORDS_SEED);
   const [orcPessoal, setOrcPessoalState] = useState<OrcPessoal[]>(ORC_PESSOAL_SEED);
   const [hydrated, setHydrated] = useState(false);
+  const [origem, setOrigem] = useState<OrigemTimesheet>("embutido");
+  const [atualizadoEm, setAtualizadoEm] = useState<string | null>(null);
 
   // Dados importados ficam no navegador e substituem os embutidos.
   useEffect(() => {
@@ -93,6 +110,32 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const pes = readStored<OrcPessoal>(STORAGE_KEYS.orcPessoal);
     if (pes) setOrcPessoalState(pes);
     setHydrated(true);
+
+    // Uma importação manual é uma escolha explícita do usuário: tem prioridade
+    // sobre a leitura automática do Smartsheet.
+    if (ts) {
+      setOrigem("importado");
+      return;
+    }
+
+    let cancelado = false;
+    fetch("/api/timesheet")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status))))
+      .then((p: PayloadApi) => {
+        if (cancelado || !p?.timesheet?.length) return;
+        setTimesheetState(
+          p.timesheet.map((r) => ({ ...r, m: r.m || MESES[r.mo - 1] || "" })),
+        );
+        if (p.capacidade?.length) setCapacidadeState(p.capacidade);
+        setOrigem("smartsheet");
+        setAtualizadoEm(p.atualizadoEm);
+      })
+      .catch((e) => {
+        console.error("Smartsheet indisponível; exibindo os dados embutidos.", e);
+      });
+    return () => {
+      cancelado = true;
+    };
   }, []);
 
   const setTimesheet = useCallback((rows: TSRow[], cap?: CapacidadeRow[]) => {
@@ -148,6 +191,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       orcRecords,
       orcPessoal,
       hydrated,
+      origem,
+      atualizadoEm,
       setTimesheet,
       setPlano,
       setOrcamento,
@@ -160,6 +205,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       orcRecords,
       orcPessoal,
       hydrated,
+      origem,
+      atualizadoEm,
       setTimesheet,
       setPlano,
       setOrcamento,
