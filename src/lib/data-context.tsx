@@ -10,6 +10,7 @@ import {
 } from "react";
 
 import {
+  COLABORADORES,
   ORC_PESSOAL_SEED,
   ORC_RECORDS_SEED,
   PLANO_SEED,
@@ -49,6 +50,20 @@ function readStored<T>(key: string): T[] | null {
   }
 }
 
+const INFO_COLAB = new Map(COLABORADORES.map((i) => [i.c, i]));
+
+/**
+ * Preenche Time e Status a partir de `data/colaboradores.json` nos lançamentos
+ * que não trazem esses campos. O que vier na planilha importada tem prioridade.
+ */
+function enriquecer(rows: TSRow[]): TSRow[] {
+  return rows.map((r) => {
+    const info = INFO_COLAB.get(r.c);
+    if (!info || (r.time && r.st)) return r;
+    return { ...r, time: r.time ?? info.time, st: r.st ?? info.st };
+  });
+}
+
 function persist(key: string, rows: unknown[]) {
   try {
     localStorage.setItem(key, JSON.stringify(rows));
@@ -58,7 +73,7 @@ function persist(key: string, rows: unknown[]) {
 }
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
-  const [timesheet, setTimesheetState] = useState<TSRow[]>(TIMESHEET_SEED);
+  const [timesheet, setTimesheetState] = useState<TSRow[]>(() => enriquecer(TIMESHEET_SEED));
   const [capacidade, setCapacidadeState] = useState<CapacidadeRow[]>([]);
   const [plano, setPlanoState] = useState<PlanoRow[]>(PLANO_SEED);
   const [orcRecords, setOrcRecordsState] = useState<OrcRecord[]>(ORC_RECORDS_SEED);
@@ -68,7 +83,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   // Dados importados ficam no navegador e substituem os embutidos.
   useEffect(() => {
     const ts = readStored<TSRow>(STORAGE_KEYS.timesheet);
-    if (ts) setTimesheetState(ts);
+    if (ts) setTimesheetState(enriquecer(ts));
     const cap = readStored<CapacidadeRow>(STORAGE_KEYS.capacidade);
     if (cap) setCapacidadeState(cap);
     const pl = readStored<PlanoRow>(STORAGE_KEYS.plano);
@@ -82,7 +97,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const setTimesheet = useCallback((rows: TSRow[], cap?: CapacidadeRow[]) => {
     persist(STORAGE_KEYS.timesheet, rows);
-    setTimesheetState(rows);
+    setTimesheetState(enriquecer(rows));
     if (cap && cap.length) {
       persist(STORAGE_KEYS.capacidade, cap);
       setCapacidadeState(cap);
@@ -112,7 +127,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (dataset === "timesheet") {
       localStorage.removeItem(STORAGE_KEYS.timesheet);
       localStorage.removeItem(STORAGE_KEYS.capacidade);
-      setTimesheetState(TIMESHEET_SEED);
+      setTimesheetState(enriquecer(TIMESHEET_SEED));
       setCapacidadeState([]);
     } else if (dataset === "plano") {
       localStorage.removeItem(STORAGE_KEYS.plano);

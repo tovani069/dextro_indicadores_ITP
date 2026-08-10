@@ -72,18 +72,19 @@ No menu **⋮** ao lado de cada seção da sidebar é possível:
 Para atualizar os dados de forma permanente (para todos os usuários), edite os JSON em `src/data/`
 e faça um novo deploy.
 
-### Timesheet — colunas opcionais
+### Timesheet — Time, Status e Capacidade
 
-A aba Timesheet reproduz os visuais do relatório de Power BI da operação. Três recursos dependem
-de dados que a base atual ainda não tem e aparecem sozinhos assim que forem importados:
+A aba Timesheet reproduz os visuais do relatório de Power BI da operação.
 
-| Recurso | O que é preciso |
-| --- | --- |
-| Filtro **Time** | coluna `Time` (ou `Equipe`) na aba Timesheet — ex.: MDR, Suporte |
-| Filtro **Status Colab.** | coluna `Status Colab.` (ou `Status`) — ex.: Ativo, Inativo |
-| KPI **Horas Disponíveis** e **% Preenchimento** | aba **Capacidade** com `Colaborador`, `Ano`, `MesNum`, `Horas Disponíveis` |
+**Time e Status Colab.** vêm de [src/data/colaboradores.json](src/data/colaboradores.json) — uma linha
+por colaborador com `time` (MDR / Suporte) e `st` (Ativo / Inativo). É só editar o arquivo para
+corrigir ou incluir alguém. Quem não estiver mapeado aparece como "Não informado".
+Se a planilha importada trouxer as colunas `Time` e `Status Colab.`, elas têm prioridade sobre o JSON.
 
-O modelo exportado já vem com essas colunas e com a aba `Capacidade` em branco, pronta para preencher.
+**Horas Disponíveis** e **% Preenchimento** dependem da aba **Capacidade** da planilha
+(`Colaborador`, `Ano`, `MesNum`, `Horas Disponíveis`). Sem ela, esses dois indicadores não são
+exibidos e o cabeçalho avisa "sem base de horas disponíveis". O modelo exportado já vem com a aba
+em branco, pronta para preencher.
 
 ## Deploy (Vercel)
 

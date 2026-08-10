@@ -52,6 +52,9 @@ type GrupoLista = "colabs" | "anos" | "meses" | "cats" | "clientes" | "times" | 
 
 type RankCol = "total" | "billable" | "non_billable" | "chargeability";
 
+/** Valor usado quando o colaborador não tem time/status cadastrado. */
+const NAO_INFORMADO = "Não informado";
+
 const stripPrefix = (s: string) => s.replace(/^\d+\.\s*/, "");
 const stripCatPrefix = (s: string) => s.replace(/^\d+\. /, "");
 
@@ -93,12 +96,24 @@ export default function Timesheet() {
     () => [...new Set(timesheet.map((r) => r.cat))].filter(Boolean).sort(),
     [timesheet],
   );
+  // "Não informado" fica no fim da lista, depois dos valores reais.
+  const ordenarComNaoInformado = (a: string, b: string) =>
+    Number(a === NAO_INFORMADO) - Number(b === NAO_INFORMADO) || a.localeCompare(b);
+
   const allTimes = useMemo(
-    () => [...new Set(timesheet.map((r) => r.time).filter(Boolean))].sort() as string[],
+    () =>
+      ([...new Set(timesheet.map((r) => r.time).filter(Boolean))] as string[]).sort(
+        ordenarComNaoInformado,
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [timesheet],
   );
   const allStatus = useMemo(
-    () => [...new Set(timesheet.map((r) => r.st).filter(Boolean))].sort() as string[],
+    () =>
+      ([...new Set(timesheet.map((r) => r.st).filter(Boolean))] as string[]).sort(
+        ordenarComNaoInformado,
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [timesheet],
   );
   const allClientes = useMemo(() => {

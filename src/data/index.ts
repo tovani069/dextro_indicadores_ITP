@@ -7,6 +7,7 @@ import type {
 } from "@/lib/types";
 
 import timesheetJson from "./timesheet.json";
+import colaboradoresJson from "./colaboradores.json";
 import indicadoresJson from "./indicadores.json";
 import planoJson from "./plano.json";
 import orcRecordsJson from "./orcamento-records.json";
@@ -23,3 +24,14 @@ export const ORC_PESSOAL_SEED = orcPessoalJson as unknown as OrcPessoal[];
 
 /** Indicadores são estáticos (não têm importação por planilha). */
 export const INDICADORES: Indicador[] = indicadoresJson as unknown as Indicador[];
+
+/**
+ * Time (MDR / Suporte) e status de cada colaborador.
+ * Alimenta os filtros "Time" e "Status Colab." quando o timesheet importado
+ * não traz essas colunas. Editável à mão — uma linha por colaborador.
+ */
+export const COLABORADORES = colaboradoresJson as {
+  c: string;
+  time: string;
+  st: string;
+}[];
