@@ -68,19 +68,12 @@ type GrupoLista = "colabs" | "anos" | "meses" | "cats" | "clientes" | "times" | 
 
 type RankCol = "total" | "billable" | "non_billable" | "chargeability";
 
-/** Explicação da origem dos dados, no tooltip do cabeçalho. */
-const FONTE_TITULO: Record<string, string> = {
-  smartsheet: 'Lançamentos lidos do relatório "Base todos os lançamentos" no Smartsheet',
-  importado: "Exibindo a planilha importada neste navegador (menu ⋮ → Restaurar original volta ao Smartsheet)",
-  embutido: "Smartsheet indisponível — exibindo a base embutida no projeto",
-};
-
 /** Valor usado quando o colaborador não tem time/status cadastrado. */
 const NAO_INFORMADO = "Não informado";
 
 
 export default function Timesheet() {
-  const { timesheet, capacidade, origem, atualizadoEm } = useData();
+  const { timesheet, capacidade } = useData();
   const [f, setF] = useState<Filtros>(FILTROS_VAZIOS);
   const [rankCol, setRankCol] = useState<RankCol>("chargeability");
   const [rankDir, setRankDir] = useState(-1);
@@ -396,30 +389,6 @@ export default function Timesheet() {
         <div>
           <div className="section-title" style={{ margin: 0, fontSize: 15 }}>
             ⏱ Controle Timesheet — Operações
-          </div>
-          <div className="mono" style={{ fontSize: 11, color: "var(--text3)", marginTop: 3 }}>
-            Meta chargeability: <span style={{ color: "#FF9B00" }}>≥{CHARGE_TARGET}%</span>
-            {" · "}
-            <span title={FONTE_TITULO[origem]}>
-              {origem === "smartsheet" ? (
-                <span style={{ color: "#00C8A0" }}>
-                  Smartsheet
-                  {atualizadoEm && " · " + new Date(atualizadoEm).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                </span>
-              ) : origem === "importado" ? (
-                "planilha importada"
-              ) : (
-                "dados embutidos"
-              )}
-            </span>
-            {capacidadeEstimada && (
-              <>
-                {" · "}
-                <span title={`Horas disponíveis estimadas: dias úteis do mês × ${JORNADA_PADRAO}h, descontando feriados nacionais. Importe a aba "Capacidade" para usar os números oficiais.`}>
-                  disponibilidade estimada
-                </span>
-              </>
-            )}
           </div>
         </div>
       </div>
