@@ -67,9 +67,11 @@ body{font-family:"IBM Plex Sans",sans-serif;background:var(--bg);color:var(--tex
 
 /* KPI GRID */
 .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px}
-.kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
-.kpi-accent{height:3px}
-.kpi-body{padding:14px 16px 16px}
+.kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.kpi-accent{height:3px;flex-shrink:0}
+/* Cards da mesma linha têm alturas iguais; o conteúdo fica centrado para não
+   sobrar espaço morto quando um vizinho é mais alto (medidores, por exemplo). */
+.kpi-body{padding:14px 16px 16px;flex:1;display:flex;flex-direction:column;justify-content:center}
 .kpi-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);margin-bottom:6px}
 .kpi-value{font-size:22px;font-weight:600;font-family:"IBM Plex Mono",monospace;color:var(--text);line-height:1}
 .kpi-sub{font-size:9px;font-family:"IBM Plex Mono",monospace;color:var(--text3);margin-top:4px}
@@ -269,3 +271,21 @@ em.hl{background:rgba(79,142,255,0.2);color:var(--text);font-style:normal;border
   .ts-dd-menu.anim-sobe .ts-dd-search{animation:none}
   *{transition-duration:.01ms !important}
 }
+
+/* ══════════════════════════════════════════════════════════
+   MATRIZ Nome × Categoria — cabe inteira, sem rolagem lateral
+   ══════════════════════════════════════════════════════════ */
+table.matriz{table-layout:fixed;width:100%}
+table.matriz th{
+  font-size:9px;padding:8px 6px;text-align:right;white-space:normal;
+  line-height:1.25;vertical-align:bottom;word-break:normal;overflow-wrap:normal;
+}
+table.matriz th:first-child{text-align:left}
+table.matriz td{
+  font-size:10.5px;padding:7px 6px;text-align:right;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+table.matriz td:first-child{text-align:left}
+table.matriz .matriz-nome{cursor:pointer;font-weight:500;color:var(--text2)}
+table.matriz .matriz-nome:hover{color:var(--text)}
+table.matriz tr.matriz-total td{border-top:1px solid var(--border2);border-bottom:none}

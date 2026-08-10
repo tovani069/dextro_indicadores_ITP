@@ -12,7 +12,7 @@ type Props = {
 };
 
 /** Medidor semicircular com o percentual escrito no centro (padrão do relatório do BI). */
-export default function Gauge({ value, color = "#4F8EFF", height = 96 }: Props) {
+export default function Gauge({ value, color = "#4F8EFF", height = 74 }: Props) {
   const pct = Math.max(0, Math.min(100, value));
   return (
     <div style={{ position: "relative", height }}>
@@ -52,7 +52,7 @@ export default function Gauge({ value, color = "#4F8EFF", height = 96 }: Props) 
                 ctx.textAlign = "center";
                 ctx.textBaseline = "bottom";
                 ctx.fillStyle = color;
-                ctx.font = "600 20px 'IBM Plex Mono', monospace";
+                ctx.font = "600 17px 'IBM Plex Mono', monospace";
                 ctx.fillText(pct.toFixed(2).replace(".", ",") + "%", cx, cy);
                 ctx.restore();
               },

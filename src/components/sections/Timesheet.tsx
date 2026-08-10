@@ -55,8 +55,28 @@ type RankCol = "total" | "billable" | "non_billable" | "chargeability";
 /** Valor usado quando o colaborador não tem time/status cadastrado. */
 const NAO_INFORMADO = "Não informado";
 
+/** Quantos colaboradores a matriz mostra (o resto fica no ranking abaixo). */
+const TOP_MATRIZ = 10;
+
 const stripPrefix = (s: string) => s.replace(/^\d+\.\s*/, "");
 const stripCatPrefix = (s: string) => s.replace(/^\d+\. /, "");
+
+/** Rótulo de categoria; "nan" vem da exportação de origem e vira "(Em branco)". */
+function rotuloCat(c: string) {
+  const s = stripCatPrefix(c).trim();
+  return !s || s.toLowerCase() === "nan" ? "(Em branco)" : s;
+}
+
+/** Versão curta para os cabeçalhos da matriz, que têm pouca largura. */
+const ABREV_CAT: Record<string, string> = {
+  "Estudos/Treinamentos": "Estudos/Trein.",
+  "Investigação de Dados": "Investigação",
+  "Outras Demandas": "Outras Dem.",
+};
+const abrevCat = (c: string) => {
+  const s = rotuloCat(c);
+  return ABREV_CAT[s] ?? s;
+};
 
 /** Cor conforme a distância da meta de chargeability. */
 function chargColor(v: number) {
@@ -272,7 +292,10 @@ export default function Timesheet() {
     });
   }, [rows, capacidadeFiltrada]);
 
-  /** Matriz Nome × Categoria com totais por linha e coluna. */
+  /**
+   * Matriz Nome × Categoria. Mostra só os 10 maiores totais para caber sem
+   * rolagem; os totais das colunas continuam somando todos os colaboradores.
+   */
   const matriz = useMemo(() => {
     const cats = [...new Set(rows.map((r) => r.cat).filter(Boolean))].sort();
     const nomes = [...new Set(rows.map((r) => r.c))].sort();
@@ -282,14 +305,15 @@ export default function Timesheet() {
       celulas[r.c] = celulas[r.c] || {};
       celulas[r.c][r.cat] = (celulas[r.c][r.cat] || 0) + r.h;
     });
-    const linhas = nomes.map((nome) => {
+    const todas = nomes.map((nome) => {
       const valores = cats.map((c) => celulas[nome]?.[c] ?? 0);
       return { nome, valores, total: valores.reduce((a, v) => a + v, 0) };
     });
-    const totaisCol = cats.map((_, i) => linhas.reduce((a, l) => a + l.valores[i], 0));
+    const totaisCol = cats.map((_, i) => todas.reduce((a, l) => a + l.valores[i], 0));
     return {
       cats,
-      linhas,
+      linhas: [...todas].sort((a, b) => b.total - a.total).slice(0, TOP_MATRIZ),
+      totalColaboradores: todas.length,
       totaisCol,
       totalGeral: totaisCol.reduce((a, v) => a + v, 0),
     };
@@ -322,7 +346,7 @@ export default function Timesheet() {
 
   const catOptions: FilterOption[] = allCats.map((c) => ({
     value: c,
-    label: stripCatPrefix(c),
+    label: rotuloCat(c),
     color: TS_CAT_COLORS[c] || "#6C3FFF",
   }));
 
@@ -559,7 +583,7 @@ export default function Timesheet() {
         />
         <RankBars
           title="Horas por Categoria"
-          items={porCategoria.map((i) => ({ ...i, label: stripCatPrefix(i.label) }))}
+          items={porCategoria.map((i) => ({ ...i, label: rotuloCat(i.label) }))}
           color="#6C3FFF"
           selected={f.cats}
           onPick={(v) => v && toggle("cats", v)}
@@ -814,68 +838,61 @@ export default function Timesheet() {
         </div>
       </div>
 
-      {/* Matriz Nome × Categoria */}
+      {/* Matriz Nome × Categoria — cabe inteira, sem rolagem */}
       <div className="table-card">
         <div className="table-header">
           <span className="table-title">Horas por Colaborador e Categoria</span>
-          <span className="table-count">{matriz.linhas.length} colaboradores</span>
+          <span className="table-count">
+            {matriz.linhas.length} de {matriz.totalColaboradores} · maiores totais
+          </span>
         </div>
-        <div style={{ overflowX: "auto" }}>
-          <table>
-            <thead>
-              <tr>
-                <th style={{ minWidth: 160 }}>Nome</th>
-                {matriz.cats.map((c) => (
-                  <th
-                    key={c}
-                    style={{ textAlign: "right", minWidth: 110 }}
-                    title={"Filtrar por " + c}
-                    onClick={() => toggle("cats", c)}
-                  >
-                    {c}
-                  </th>
-                ))}
-                <th style={{ textAlign: "right", minWidth: 90 }}>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {matriz.linhas.map((l) => (
-                <tr key={l.nome}>
-                  <td
-                    style={{ cursor: "pointer", fontWeight: 500 }}
-                    title={"Filtrar por " + l.nome}
-                    onClick={() => toggle("colabs", l.nome)}
-                  >
-                    {l.nome}
-                  </td>
-                  {l.valores.map((v, i) => (
-                    <td key={i} className="mono" style={{ textAlign: "right", fontSize: 11 }}>
-                      {v > 0 ? fmt2(v) : ""}
-                    </td>
-                  ))}
-                  <td className="mono" style={{ textAlign: "right", fontWeight: 600, color: "var(--text)" }}>
-                    {fmt2(l.total)}
-                  </td>
-                </tr>
+        <table className="matriz">
+          <thead>
+            <tr>
+              <th style={{ width: "15%" }}>Nome</th>
+              {matriz.cats.map((c) => (
+                <th key={c} title={rotuloCat(c) + " — clique para filtrar"} onClick={() => toggle("cats", c)}>
+                  {abrevCat(c)}
+                </th>
               ))}
-              <tr>
-                <td style={{ fontWeight: 600, color: "var(--text)" }}>Total</td>
-                {matriz.totaisCol.map((v, i) => (
-                  <td
-                    key={i}
-                    className="mono"
-                    style={{ textAlign: "right", fontWeight: 600, color: "var(--text2)" }}
-                  >
+              <th style={{ width: "9%" }}>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {matriz.linhas.map((l) => (
+              <tr key={l.nome}>
+                <td
+                  className="matriz-nome"
+                  title={"Filtrar por " + l.nome}
+                  onClick={() => toggle("colabs", l.nome)}
+                >
+                  {l.nome}
+                </td>
+                {l.valores.map((v, i) => (
+                  <td key={i} className="mono">
                     {v > 0 ? fmt2(v) : ""}
                   </td>
                 ))}
-                <td className="mono" style={{ textAlign: "right", fontWeight: 700, color: "var(--text)" }}>
-                  {fmt2(matriz.totalGeral)}
+                <td className="mono" style={{ fontWeight: 600, color: "var(--text)" }}>
+                  {fmt2(l.total)}
                 </td>
               </tr>
-            </tbody>
-          </table>
-        </div>
+            ))}
+            <tr className="matriz-total">
+              <td style={{ fontWeight: 600, color: "var(--text)" }}>
+                Total ({matriz.totalColaboradores})
+              </td>
+              {matriz.totaisCol.map((v, i) => (
+                <td key={i} className="mono" style={{ fontWeight: 600, color: "var(--text2)" }}>
+                  {v > 0 ? fmt2(v) : ""}
+                </td>
+              ))}
+              <td className="mono" style={{ fontWeight: 700, color: "var(--text)" }}>
+                {fmt2(matriz.totalGeral)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       {/* Cards por colaborador */}
@@ -1203,7 +1220,7 @@ function ColabCard({
                     marginBottom: 2,
                   }}
                 >
-                  <span>{stripCatPrefix(cat)}</span>
+                  <span>{rotuloCat(cat)}</span>
                   <span className="mono" style={{ color: cc }}>
                     {pct}%
                   </span>
