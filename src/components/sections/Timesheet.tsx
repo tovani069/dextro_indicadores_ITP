@@ -15,8 +15,21 @@ import {
   MES_ORD,
   TS_CAT_COLORS,
 } from "@/lib/constants";
+import { estimarCapacidade, JORNADA_PADRAO } from "@/lib/capacidade";
 import { useData } from "@/lib/data-context";
+import {
+  abrevCat,
+  chargBg,
+  chargColor,
+  chargLabel,
+  fmt2,
+  fmtH,
+  fmtMil,
+  rotuloCat,
+  stripPrefix,
+} from "@/lib/timesheet";
 import type { TSRow } from "@/lib/types";
+import ColabDetalhe from "./ColabDetalhe";
 
 type Tipo = "todos" | "billable" | "nonbillable";
 
@@ -55,49 +68,26 @@ type RankCol = "total" | "billable" | "non_billable" | "chargeability";
 /** Valor usado quando o colaborador não tem time/status cadastrado. */
 const NAO_INFORMADO = "Não informado";
 
-/** Quantos colaboradores a matriz mostra (o resto fica no ranking abaixo). */
-const TOP_MATRIZ = 10;
-
-const stripPrefix = (s: string) => s.replace(/^\d+\.\s*/, "");
-const stripCatPrefix = (s: string) => s.replace(/^\d+\. /, "");
-
-/** Rótulo de categoria; "nan" vem da exportação de origem e vira "(Em branco)". */
-function rotuloCat(c: string) {
-  const s = stripCatPrefix(c).trim();
-  return !s || s.toLowerCase() === "nan" ? "(Em branco)" : s;
-}
-
-/** Versão curta para os cabeçalhos da matriz, que têm pouca largura. */
-const ABREV_CAT: Record<string, string> = {
-  "Estudos/Treinamentos": "Estudos/Trein.",
-  "Investigação de Dados": "Investigação",
-  "Outras Demandas": "Outras Dem.",
-};
-const abrevCat = (c: string) => {
-  const s = rotuloCat(c);
-  return ABREV_CAT[s] ?? s;
-};
-
-/** Cor conforme a distância da meta de chargeability. */
-function chargColor(v: number) {
-  return v >= CHARGE_TARGET ? "#00C8A0" : v >= 50 ? "#FF9B00" : "#FF5C6A";
-}
-
-const fmtH = (v: number) => Math.round(v).toLocaleString("pt-BR") + "h";
-const fmtMil = (v: number) =>
-  v >= 1000 ? (v / 1000).toFixed(2).replace(".", ",") + " Mil" : Math.round(v).toLocaleString("pt-BR");
-const fmt2 = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function Timesheet() {
   const { timesheet, capacidade } = useData();
   const [f, setF] = useState<Filtros>(FILTROS_VAZIOS);
   const [rankCol, setRankCol] = useState<RankCol>("chargeability");
   const [rankDir, setRankDir] = useState(-1);
+  /** Colaborador em destaque no card ampliado; null = fechado. */
+  const [detalhe, setDetalhe] = useState<string | null>(null);
 
   // Campos que só existem quando a base importada os traz.
   const temTime = useMemo(() => timesheet.some((r) => r.time), [timesheet]);
   const temStatus = useMemo(() => timesheet.some((r) => r.st), [timesheet]);
-  const temCapacidade = capacidade.length > 0;
+
+  // Sem a aba "Capacidade", as horas disponíveis são estimadas por dias úteis.
+  const capacidadeEstimada = capacidade.length === 0;
+  const capacidadeBase = useMemo(
+    () => (capacidade.length ? capacidade : estimarCapacidade(timesheet)),
+    [capacidade, timesheet],
+  );
+  const temCapacidade = capacidadeBase.length > 0;
 
   // ── Listas de opções ────────────────────────────────────────────────
   const allColabs = useMemo(() => [...new Set(timesheet.map((r) => r.c))].sort(), [timesheet]);
@@ -172,7 +162,7 @@ export default function Timesheet() {
   // categoria são atributos do lançamento, não da disponibilidade do colaborador.
   const capacidadeFiltrada = useMemo(
     () =>
-      capacidade.filter((c) => {
+      capacidadeBase.filter((c) => {
         if (f.colabs.length && !f.colabs.includes(c.c)) return false;
         if (f.anos.length && !f.anos.includes(String(c.a))) return false;
         if (f.meses.length && !f.meses.includes(MESES[c.mo - 1])) return false;
@@ -180,7 +170,7 @@ export default function Timesheet() {
         if (f.ate && `${c.a}-${String(c.mo).padStart(2, "0")}-01` > f.ate) return false;
         return true;
       }),
-    [capacidade, f],
+    [capacidadeBase, f],
   );
 
   function toggle(grupo: GrupoLista, value: string) {
@@ -293,8 +283,9 @@ export default function Timesheet() {
   }, [rows, capacidadeFiltrada]);
 
   /**
-   * Matriz Nome × Categoria. Mostra só os 10 maiores totais para caber sem
-   * rolagem; os totais das colunas continuam somando todos os colaboradores.
+   * Matriz Nome × Categoria, do maior total para o menor. Cabe sem rolagem
+   * lateral; na vertical mostra ~10 linhas e rola dentro do card, com
+   * cabeçalho e linha de total fixos.
    */
   const matriz = useMemo(() => {
     const cats = [...new Set(rows.map((r) => r.cat).filter(Boolean))].sort();
@@ -312,7 +303,7 @@ export default function Timesheet() {
     const totaisCol = cats.map((_, i) => todas.reduce((a, l) => a + l.valores[i], 0));
     return {
       cats,
-      linhas: [...todas].sort((a, b) => b.total - a.total).slice(0, TOP_MATRIZ),
+      linhas: [...todas].sort((a, b) => b.total - a.total),
       totalColaboradores: todas.length,
       totaisCol,
       totalGeral: totaisCol.reduce((a, v) => a + v, 0),
@@ -368,11 +359,11 @@ export default function Timesheet() {
           </div>
           <div className="mono" style={{ fontSize: 11, color: "var(--text3)", marginTop: 3 }}>
             Meta chargeability: <span style={{ color: "#FF9B00" }}>≥{CHARGE_TARGET}%</span>
-            {!temCapacidade && (
+            {capacidadeEstimada && (
               <>
                 {" · "}
-                <span title='Importe a aba "Capacidade" para habilitar Horas Disponíveis e % Preenchimento'>
-                  sem base de horas disponíveis
+                <span title={`Horas disponíveis estimadas: dias úteis do mês × ${JORNADA_PADRAO}h, descontando feriados nacionais. Importe a aba "Capacidade" para usar os números oficiais.`}>
+                  disponibilidade estimada
                 </span>
               </>
             )}
@@ -499,7 +490,7 @@ export default function Timesheet() {
           <KpiCard
             label="Horas Disponíveis"
             value={fmtMil(horasDisponiveis)}
-            sub="capacidade no período"
+            sub={capacidadeEstimada ? `dias úteis × ${JORNADA_PADRAO}h` : "capacidade importada"}
             grad="linear-gradient(90deg,#6C3FFF,#4F8EFF)"
           />
         )}
@@ -542,6 +533,7 @@ export default function Timesheet() {
           value={`${acima} ✅ / ${abaixo} 🔴`}
           sub="acima / abaixo da meta"
           grad="linear-gradient(90deg,#6C3FFF,#FF40A0)"
+          valueStyle={{ fontSize: 18, whiteSpace: "nowrap" }}
         />
       </div>
 
@@ -838,61 +830,69 @@ export default function Timesheet() {
         </div>
       </div>
 
-      {/* Matriz Nome × Categoria — cabe inteira, sem rolagem */}
+      {/* Matriz Nome × Categoria — sem rolagem lateral; a lista rola dentro do card */}
       <div className="table-card">
         <div className="table-header">
           <span className="table-title">Horas por Colaborador e Categoria</span>
           <span className="table-count">
-            {matriz.linhas.length} de {matriz.totalColaboradores} · maiores totais
+            {matriz.totalColaboradores} colaboradores · maiores totais primeiro
           </span>
         </div>
-        <table className="matriz">
-          <thead>
-            <tr>
-              <th style={{ width: "15%" }}>Nome</th>
-              {matriz.cats.map((c) => (
-                <th key={c} title={rotuloCat(c) + " — clique para filtrar"} onClick={() => toggle("cats", c)}>
-                  {abrevCat(c)}
-                </th>
+        <div className="matriz-scroll">
+          <table className="matriz">
+            <thead>
+              <tr>
+                <th style={{ width: "15%" }}>Nome</th>
+                {matriz.cats.map((c) => (
+                  <th
+                    key={c}
+                    title={rotuloCat(c) + " — clique para filtrar"}
+                    onClick={() => toggle("cats", c)}
+                  >
+                    {abrevCat(c)}
+                  </th>
+                ))}
+                <th style={{ width: "9%" }}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {matriz.linhas.map((l) => (
+                <tr key={l.nome}>
+                  <td
+                    className="matriz-nome"
+                    title={"Filtrar por " + l.nome}
+                    onClick={() => toggle("colabs", l.nome)}
+                  >
+                    {l.nome}
+                  </td>
+                  {l.valores.map((v, i) => (
+                    <td key={i} className="mono">
+                      {v > 0 ? fmt2(v) : ""}
+                    </td>
+                  ))}
+                  <td className="mono" style={{ fontWeight: 600, color: "var(--text)" }}>
+                    {fmt2(l.total)}
+                  </td>
+                </tr>
               ))}
-              <th style={{ width: "9%" }}>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {matriz.linhas.map((l) => (
-              <tr key={l.nome}>
-                <td
-                  className="matriz-nome"
-                  title={"Filtrar por " + l.nome}
-                  onClick={() => toggle("colabs", l.nome)}
-                >
-                  {l.nome}
+            </tbody>
+            <tfoot>
+              <tr className="matriz-total">
+                <td style={{ fontWeight: 600, color: "var(--text)" }}>
+                  Total ({matriz.totalColaboradores})
                 </td>
-                {l.valores.map((v, i) => (
-                  <td key={i} className="mono">
+                {matriz.totaisCol.map((v, i) => (
+                  <td key={i} className="mono" style={{ fontWeight: 600, color: "var(--text2)" }}>
                     {v > 0 ? fmt2(v) : ""}
                   </td>
                 ))}
-                <td className="mono" style={{ fontWeight: 600, color: "var(--text)" }}>
-                  {fmt2(l.total)}
+                <td className="mono" style={{ fontWeight: 700, color: "var(--text)" }}>
+                  {fmt2(matriz.totalGeral)}
                 </td>
               </tr>
-            ))}
-            <tr className="matriz-total">
-              <td style={{ fontWeight: 600, color: "var(--text)" }}>
-                Total ({matriz.totalColaboradores})
-              </td>
-              {matriz.totaisCol.map((v, i) => (
-                <td key={i} className="mono" style={{ fontWeight: 600, color: "var(--text2)" }}>
-                  {v > 0 ? fmt2(v) : ""}
-                </td>
-              ))}
-              <td className="mono" style={{ fontWeight: 700, color: "var(--text)" }}>
-                {fmt2(matriz.totalGeral)}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+            </tfoot>
+          </table>
+        </div>
       </div>
 
       {/* Cards por colaborador */}
@@ -913,7 +913,13 @@ export default function Timesheet() {
           </div>
         ) : (
           colabs.map((colab) => (
-            <ColabCard key={colab} colab={colab} rows={rows} cats={allCats} />
+            <ColabCard
+              key={colab}
+              colab={colab}
+              rows={rows}
+              cats={allCats}
+              onAbrir={() => setDetalhe(colab)}
+            />
           ))
         )}
       </div>
@@ -947,7 +953,13 @@ export default function Timesheet() {
                   <td className="mono" style={{ fontSize: 11, color: "var(--text3)" }}>
                     {i + 1}
                   </td>
-                  <td style={{ fontWeight: 500 }}>{r.colab}</td>
+                  <td
+                    style={{ fontWeight: 500, cursor: "pointer" }}
+                    title={"Ver detalhe de " + r.colab}
+                    onClick={() => setDetalhe(r.colab)}
+                  >
+                    {r.colab}
+                  </td>
                   <td className="mono">{r.total}h</td>
                   <td className="mono" style={{ color: "#00C8A0" }}>
                     {r.billable}h
@@ -1008,6 +1020,10 @@ export default function Timesheet() {
           </tbody>
         </table>
       </div>
+
+      {detalhe && (
+        <ColabDetalhe colab={detalhe} rows={rows} onClose={() => setDetalhe(null)} />
+      )}
     </>
   );
 }
@@ -1016,24 +1032,20 @@ function ColabCard({
   colab,
   rows,
   cats,
+  onAbrir,
 }: {
   colab: string;
   rows: TSRow[];
   cats: string[];
+  onAbrir: () => void;
 }) {
   const cr = rows.filter((r) => r.c === colab);
   const tot = cr.reduce((a, r) => a + r.h, 0);
   const bill = cr.filter((r) => r.b).reduce((a, r) => a + r.h, 0);
   const charg = tot > 0 ? Math.round((bill / tot) * 100) : 0;
   const col = chargColor(charg);
-  const bg =
-    charg >= CHARGE_TARGET
-      ? "rgba(0,200,160,.10)"
-      : charg >= 50
-        ? "rgba(255,155,0,.10)"
-        : "rgba(255,92,106,.10)";
-  const label =
-    charg >= CHARGE_TARGET ? "✅ Meta atingida" : charg >= 50 ? "🟡 Atenção" : "🔴 Abaixo da meta";
+  const bg = chargBg(charg);
+  const label = chargLabel(charg);
 
   const cliMap: Record<string, number> = {};
   cr.filter((r) => r.b).forEach((r) => (cliMap[r.cl] = (cliMap[r.cl] || 0) + r.h));
@@ -1043,6 +1055,17 @@ function ColabCard({
 
   return (
     <div
+      className="colab-card"
+      role="button"
+      tabIndex={0}
+      title={"Ver detalhe de " + colab}
+      onClick={onAbrir}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onAbrir();
+        }
+      }}
       style={{
         background: "var(--bg2)",
         border: `1px solid ${col}33`,

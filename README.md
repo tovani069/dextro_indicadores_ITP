@@ -81,10 +81,11 @@ por colaborador com `time` (MDR / Suporte) e `st` (Ativo / Inativo). É só edit
 corrigir ou incluir alguém. Quem não estiver mapeado aparece como "Não informado".
 Se a planilha importada trouxer as colunas `Time` e `Status Colab.`, elas têm prioridade sobre o JSON.
 
-**Horas Disponíveis** e **% Preenchimento** dependem da aba **Capacidade** da planilha
-(`Colaborador`, `Ano`, `MesNum`, `Horas Disponíveis`). Sem ela, esses dois indicadores não são
-exibidos e o cabeçalho avisa "sem base de horas disponíveis". O modelo exportado já vem com a aba
-em branco, pronta para preencher.
+**Horas Disponíveis** e **% Preenchimento** usam a aba **Capacidade** da planilha
+(`Colaborador`, `Ano`, `MesNum`, `Horas Disponíveis`). Sem ela, a disponibilidade é **estimada**
+como `dias úteis do mês × 8h` para cada mês em que o colaborador tem lançamentos (descontando
+feriados nacionais, inclusive os móveis) — o cabeçalho avisa "disponibilidade estimada".
+Para os números oficiais, preencha a aba (que já vem no modelo exportado) e importe.
 
 ## Deploy (Vercel)
 
