@@ -5,6 +5,21 @@ export const metadata: Metadata = {
   title: "Dashboard · IT Protect — Diretoria de Operações",
   description:
     "Plano de Ação, Indicadores, Orçamento e Timesheet da Diretoria de Operações — IT Protect · Dextro",
+  /**
+   * Escudo da Dextro na aba, o mesmo arquivo dos demais produtos — os produtos
+   * Dextro se reconhecem pelo escudo, não pela sigla do cliente.
+   *
+   * Duas artes, trocadas pelo tema do sistema: traço escuro no tema claro,
+   * branco no escuro. A arte escura vem por último de propósito: navegador que
+   * ignore o `media` fica com a última declarada, e a aba escura é o caso mais
+   * comum.
+   */
+  icons: {
+    icon: [
+      { url: "/icone-claro.png", media: "(prefers-color-scheme: light)", type: "image/png" },
+      { url: "/icone-escuro.png", media: "(prefers-color-scheme: dark)", type: "image/png" },
+    ],
+  },
 };
 
 // Aplica o tema salvo antes da primeira pintura (evita flash de tema errado).
