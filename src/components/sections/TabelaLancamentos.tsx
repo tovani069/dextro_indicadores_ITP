@@ -14,8 +14,11 @@ type Props = {
   onColab?: (colab: string) => void;
 };
 
-/** Quantas linhas entram por vez: a base tem dezenas de milhares. */
-const PAGINA = 200;
+/** Quantas linhas entram por vez, conforme a rolagem chega ao fim. */
+const PAGINA = 60;
+
+/** Altura de ~6 linhas: o resto rola dentro do próprio card. */
+const ALTURA = 264;
 
 const fmtData = (iso: string) =>
   iso ? `${iso.slice(8)}/${iso.slice(5, 7)}/${iso.slice(2, 4)}` : "";
@@ -83,7 +86,17 @@ export default function TabelaLancamentos({ rows, onColab }: Props) {
         </div>
       </div>
 
-      <div style={{ maxHeight: 460, overflow: "auto" }}>
+      <div
+        style={{ maxHeight: ALTURA, overflow: "auto" }}
+        // Sem botão: chegando perto do fim da rolagem, entra mais um punhado
+        // de linhas. Renderizar as 33 mil de uma vez travaria a página.
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          if (el.scrollHeight - el.scrollTop - el.clientHeight < 200) {
+            setLimite((l) => (l < ordenadas.length ? l + PAGINA : l));
+          }
+        }}
+      >
         <table>
           <thead>
             <tr>
@@ -152,16 +165,9 @@ export default function TabelaLancamentos({ rows, onColab }: Props) {
         </table>
       </div>
 
-      <div className="table-footer" style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <span>
-          Mostrando {visiveis.length.toLocaleString("pt-BR")} de{" "}
-          {ordenadas.length.toLocaleString("pt-BR")}
-        </span>
-        {visiveis.length < ordenadas.length && (
-          <button className="btn-link" onClick={() => setLimite((l) => l + PAGINA)}>
-            Carregar mais {Math.min(PAGINA, ordenadas.length - visiveis.length)} ▾
-          </button>
-        )}
+      <div className="table-footer">
+        {visiveis.length.toLocaleString("pt-BR")} de {ordenadas.length.toLocaleString("pt-BR")}
+        {visiveis.length < ordenadas.length && " · role a tabela para ver mais"}
       </div>
     </div>
   );

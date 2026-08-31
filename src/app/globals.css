@@ -267,8 +267,8 @@ em.hl{background:rgba(79,142,255,0.2);color:var(--text);font-style:normal;border
 /* ══════════════════════════════════════════════════════════
    MATRIZ Nome × Categoria — cabe inteira, sem rolagem lateral
    ══════════════════════════════════════════════════════════ */
-/* ~10 linhas visíveis; o resto rola dentro do card, com cabeçalho e total fixos */
-.matriz-scroll{max-height:392px;overflow-y:auto;overflow-x:hidden}
+/* 7 linhas visíveis; o resto rola dentro do card, com cabeçalho e total fixos */
+.matriz-scroll{max-height:292px;overflow-y:auto;overflow-x:hidden}
 table.matriz{table-layout:fixed;width:100%}
 table.matriz thead th{position:sticky;top:0;z-index:2;background:var(--bg2)}
 table.matriz tfoot td{
