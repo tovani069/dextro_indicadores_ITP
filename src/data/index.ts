@@ -23,12 +23,14 @@ export const ORC_PESSOAL_SEED = orcPessoalJson as unknown as OrcPessoal[];
 export const INDICADORES: Indicador[] = indicadoresJson as unknown as Indicador[];
 
 /**
- * Time (MDR / Suporte) e status de cada colaborador.
- * Alimenta os filtros "Time" e "Status Colab." quando o timesheet importado
- * não traz essas colunas. Editável à mão — uma linha por colaborador.
+ * Reorganização dos times (MDR, Endpoint, Exposure, Identity e Network).
+ *
+ * Só entram aqui os colaboradores cujo time mudou: para todos os demais vale
+ * a pasta do Smartsheet em que a planilha deles está guardada — inclusive
+ * para quem já saiu, que continua no time em que estava.
  */
 export const COLABORADORES = colaboradoresJson as {
   c: string;
   time: string;
-  st: string;
+  st?: string;
 }[];
