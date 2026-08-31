@@ -72,9 +72,14 @@ type RankCol = "total" | "billable" | "non_billable" | "chargeability";
 const NAO_INFORMADO = "Não informado";
 
 
-export default function Timesheet() {
+type Props = {
+  /** Filtros já aplicados na abertura — usado pelo link compartilhado. */
+  filtrosIniciais?: Partial<Filtros>;
+};
+
+export default function Timesheet({ filtrosIniciais }: Props = {}) {
   const { timesheet, capacidade } = useData();
-  const [f, setF] = useState<Filtros>(FILTROS_VAZIOS);
+  const [f, setF] = useState<Filtros>({ ...FILTROS_VAZIOS, ...filtrosIniciais });
   const [rankCol, setRankCol] = useState<RankCol>("chargeability");
   const [rankDir, setRankDir] = useState(-1);
   /** Colaborador em destaque no card ampliado; null = fechado. */

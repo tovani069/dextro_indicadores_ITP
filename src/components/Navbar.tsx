@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import { STORAGE_KEYS } from "@/lib/constants";
 
-type Props = { onToggleSidebar: () => void };
+type Props = {
+  /** Ausente na página compartilhada, que não tem barra lateral. */
+  onToggleSidebar?: () => void;
+};
 
 export default function Navbar({ onToggleSidebar }: Props) {
   const [dateStr, setDateStr] = useState("");
@@ -32,16 +35,18 @@ export default function Navbar({ onToggleSidebar }: Props) {
 
   return (
     <nav className="navbar">
-      <button className="nav-toggle" onClick={onToggleSidebar} aria-label="Menu">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-          <path
-            d="M2 4h14M2 9h14M2 14h14"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-        </svg>
-      </button>
+      {onToggleSidebar && (
+        <button className="nav-toggle" onClick={onToggleSidebar} aria-label="Menu">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path
+              d="M2 4h14M2 9h14M2 14h14"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
+          </svg>
+        </button>
+      )}
 
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/logo-itp-dark.png" alt="IT Protect" className="nav-logo logo-dark" />

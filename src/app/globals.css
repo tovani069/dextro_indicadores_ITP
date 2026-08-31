@@ -395,3 +395,19 @@ table.matriz tr.matriz-total td{border-top:1px solid var(--border2);border-botto
 
 /* Menu que estouraria a borda direita abre alinhado ao fim do botão */
 .ts-dd-menu.ts-dd-fim{left:auto;right:0;transform-origin:top right}
+
+/* Ícone de compartilhar na aba da sidebar */
+.nav-link{
+  margin-left:auto;display:flex;align-items:center;justify-content:center;
+  width:22px;height:22px;border-radius:6px;flex-shrink:0;
+  color:var(--text3);cursor:pointer;
+  transition:background .18s cubic-bezier(.22,1,.36,1),color .18s cubic-bezier(.22,1,.36,1);
+}
+.nav-link:hover{background:var(--bg4);color:var(--text)}
+.btn-copiar{
+  flex-shrink:0;padding:0 16px;height:33px;border-radius:8px;
+  border:1px solid var(--border2);background:var(--bg3);color:var(--text);
+  font-size:12.5px;font-weight:600;font-family:"IBM Plex Sans",sans-serif;cursor:pointer;
+  transition:background .18s cubic-bezier(.22,1,.36,1);
+}
+.btn-copiar:hover{background:var(--bg4)}
