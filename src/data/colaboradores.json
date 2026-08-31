@@ -1,17 +1,17 @@
 [
  {
   "c": "Alan Farias",
-  "time": "Suporte",
+  "time": "Não informado",
   "st": "Inativo"
  },
  {
   "c": "Anderson Sales",
-  "time": "MDR",
+  "time": "Não informado",
   "st": "Inativo"
  },
  {
   "c": "Arthur Lira da Silva",
-  "time": "Suporte",
+  "time": "Endpoint",
   "st": "Ativo"
  },
  {
@@ -21,22 +21,22 @@
  },
  {
   "c": "Danilo Rocha",
-  "time": "MDR",
+  "time": "Não informado",
   "st": "Ativo"
  },
  {
   "c": "Erick Pinto",
-  "time": "Suporte",
+  "time": "Exposure",
   "st": "Ativo"
  },
  {
   "c": "Felipe Marques",
-  "time": "MDR",
+  "time": "Não informado",
   "st": "Ativo"
  },
  {
   "c": "Icaro da Silva",
-  "time": "MDR",
+  "time": "Não informado",
   "st": "Inativo"
  },
  {
@@ -46,7 +46,7 @@
  },
  {
   "c": "Juliana Amaral",
-  "time": "Suporte",
+  "time": "Identity",
   "st": "Ativo"
  },
  {
@@ -56,107 +56,107 @@
  },
  {
   "c": "Lucas",
-  "time": "Suporte",
+  "time": "Não informado",
   "st": "Ativo"
  },
  {
   "c": "Luiz Andrade",
-  "time": "MDR",
+  "time": "Não informado",
   "st": "Ativo"
  },
  {
   "c": "Luiz Costa",
-  "time": "Suporte",
+  "time": "Identity",
   "st": "Ativo"
  },
  {
   "c": "Manoel Lima",
-  "time": "Suporte",
+  "time": "Não informado",
   "st": "Ativo"
  },
  {
   "c": "Marcio Almeida",
-  "time": "Suporte",
+  "time": "Endpoint",
   "st": "Ativo"
  },
  {
   "c": "Marcus",
-  "time": "MDR",
+  "time": "Não informado",
   "st": "Inativo"
  },
  {
   "c": "Matheus Vianna",
-  "time": "Suporte",
+  "time": "Não informado",
   "st": "Ativo"
  },
  {
   "c": "Oscar Coutinho",
-  "time": "Suporte",
+  "time": "Network",
   "st": "Ativo"
  },
  {
   "c": "Paulo Medeiros",
-  "time": "Suporte",
+  "time": "Exposure",
   "st": "Ativo"
  },
  {
   "c": "Pedro Comin",
-  "time": "Suporte",
+  "time": "Exposure",
   "st": "Ativo"
  },
  {
   "c": "Ricardo Baum",
-  "time": "MDR",
+  "time": "Não informado",
   "st": "Inativo"
  },
  {
   "c": "Ricardo Claus",
-  "time": "Suporte",
+  "time": "Exposure",
   "st": "Ativo"
  },
  {
   "c": "Rodrigo Couto",
-  "time": "MDR",
+  "time": "Não informado",
   "st": "Ativo"
  },
  {
   "c": "Ruy",
-  "time": "Suporte",
+  "time": "Network",
   "st": "Ativo"
  },
  {
   "c": "Sávio Alves",
-  "time": "Suporte",
+  "time": "Não informado",
   "st": "Ativo"
  },
  {
   "c": "Suzanne Tinti",
-  "time": "MDR",
+  "time": "Não informado",
   "st": "Inativo"
  },
  {
   "c": "Thales Cruz",
-  "time": "Suporte",
+  "time": "Exposure",
   "st": "Ativo"
  },
  {
   "c": "Thiago Borges",
-  "time": "MDR",
+  "time": "Endpoint",
   "st": "Ativo"
  },
  {
   "c": "Victor Costa",
-  "time": "Suporte",
+  "time": "Identity",
   "st": "Ativo"
  },
  {
   "c": "Wesley Lopes",
-  "time": "MDR",
+  "time": "Não informado",
   "st": "Ativo"
  },
  {
   "c": "Wilmar Navarro",
-  "time": "Suporte",
+  "time": "Network",
   "st": "Ativo"
  }
 ]

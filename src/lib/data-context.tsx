@@ -46,15 +46,24 @@ const INFO_COLAB = new Map(COLABORADORES.map((i) => [i.c, i]));
 
 /**
  * Normaliza os lançamentos de qualquer origem: aplica a regra de faturável
- * (pela categoria) e completa Time/Status a partir de
- * `data/colaboradores.json` quando o lançamento não os traz.
+ * (pela categoria) e resolve Time e Status do colaborador.
+ *
+ * O Time vem de `data/colaboradores.json` e **tem prioridade** sobre o Setor
+ * do cadastro: a operação foi reorganizada em cinco times (MDR, Endpoint,
+ * Exposure, Identity e Network) e o cadastro no Smartsheet ainda registra a
+ * estrutura antiga de dois. Quando o cadastro for atualizado, basta apagar o
+ * `time` do arquivo para o Setor voltar a mandar.
+ *
+ * O Status continua vindo do cadastro, que é a fonte viva de quem está ativo.
  */
 function enriquecer(rows: TSRow[]): TSRow[] {
   return rows.map((r) => {
     const info = INFO_COLAB.get(r.c);
     const b = ehFaturavel(r.cat);
-    if (!info || (r.time && r.st)) return b === r.b ? r : { ...r, b };
-    return { ...r, b, time: r.time ?? info.time, st: r.st ?? info.st };
+    const time = info?.time || r.time;
+    const st = r.st || info?.st;
+    if (b === r.b && time === r.time && st === r.st) return r;
+    return { ...r, b, ...(time ? { time } : {}), ...(st ? { st } : {}) };
   });
 }
 
