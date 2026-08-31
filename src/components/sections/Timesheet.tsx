@@ -32,6 +32,7 @@ import {
   stripPrefix,
 } from "@/lib/timesheet";
 import type { TSRow } from "@/lib/types";
+import CardDiasColab from "./CardDiasColab";
 import ColabDetalhe from "./ColabDetalhe";
 
 type Tipo = "todos" | "billable" | "nonbillable";
@@ -587,6 +588,11 @@ export default function Timesheet({ filtrosIniciais }: Props = {}) {
           valueStyle={{ fontSize: 18, whiteSpace: "nowrap" }}
         />
       </div>
+
+      {/* Com o recorte em uma pessoa só, cabe mostrar o preenchimento dela dia a dia */}
+      {f.colabs.length === 1 && (
+        <CardDiasColab colab={f.colabs[0]} linhas={rows} periodo={periodoFiltro} />
+      )}
 
       {/* Barras horizontais — clique filtra todos os visuais */}
       <div className="section-title" style={{ marginBottom: 10 }}>
