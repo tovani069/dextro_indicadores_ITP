@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import ChartCanvas from "@/components/charts/ChartCanvas";
 import { linhaVertical } from "@/components/charts/plugins";
@@ -92,22 +92,68 @@ export default function Timesheet() {
   );
   const temCapacidade = capacidadeBase.length > 0;
 
+  // ── Filtragem ───────────────────────────────────────────────────────
+  /**
+   * Aplica os filtros, podendo ignorar um deles. Ignorar o próprio grupo é o
+   * que permite montar a lista de opções de um filtro já recortada pelos
+   * outros — do contrário, filtrar por Time continuaria oferecendo gente de
+   * outra equipe, e filtrar por mês continuaria oferecendo quem já saiu.
+   */
+  const recorte = useCallback(
+    (ignorar?: keyof Filtros) =>
+      timesheet.filter((r) => {
+        if (ignorar !== "colabs" && f.colabs.length && !f.colabs.includes(r.c)) return false;
+        if (ignorar !== "anos" && f.anos.length && !f.anos.includes(String(r.a))) return false;
+        if (ignorar !== "meses" && f.meses.length && !f.meses.includes(r.m)) return false;
+        if (ignorar !== "cats" && f.cats.length && !f.cats.includes(r.cat)) return false;
+        if (ignorar !== "clientes" && f.clientes.length && !f.clientes.includes(r.cl)) return false;
+        if (ignorar !== "times" && f.times.length && !f.times.includes(r.time ?? "")) return false;
+        if (ignorar !== "sts" && f.sts.length && !f.sts.includes(r.st ?? "")) return false;
+        if (ignorar !== "tipo") {
+          if (f.tipo === "billable" && !r.b) return false;
+          if (f.tipo === "nonbillable" && r.b) return false;
+        }
+        if (ignorar !== "de" && f.de && r.d && r.d < f.de) return false;
+        if (ignorar !== "ate" && f.ate && r.d && r.d > f.ate) return false;
+        return true;
+      }),
+    [timesheet, f],
+  );
+
+  const rows = useMemo(() => recorte(), [recorte]);
+
   // ── Listas de opções ────────────────────────────────────────────────
-  const allColabs = useMemo(() => [...new Set(timesheet.map((r) => r.c))].sort(), [timesheet]);
+  /** O que já está selecionado nunca some da lista — senão não dá para desmarcar. */
+  const comSelecionados = (valores: string[], selecionados: string[]) => [
+    ...new Set([...valores, ...selecionados]),
+  ];
+
+  const allColabs = useMemo(
+    () => comSelecionados([...new Set(recorte("colabs").map((r) => r.c))], f.colabs).sort(),
+    [recorte, f.colabs],
+  );
   const allAnos = useMemo(
-    () => [...new Set(timesheet.map((r) => r.a))].sort().map(String),
-    [timesheet],
+    () =>
+      comSelecionados(
+        [...new Set(recorte("anos").map((r) => String(r.a)))],
+        f.anos,
+      ).sort(),
+    [recorte, f.anos],
   );
   const allMeses = useMemo(
     () =>
-      [...new Set(timesheet.map((r) => r.m))].sort(
+      comSelecionados([...new Set(recorte("meses").map((r) => r.m))], f.meses).sort(
         (a, b) => (MES_ORD[a] || 9) - (MES_ORD[b] || 9),
       ),
-    [timesheet],
+    [recorte, f.meses],
   );
   const allCats = useMemo(
-    () => [...new Set(timesheet.map((r) => r.cat))].filter(Boolean).sort(),
-    [timesheet],
+    () =>
+      comSelecionados(
+        [...new Set(recorte("cats").map((r) => r.cat))].filter(Boolean),
+        f.cats,
+      ).sort(),
+    [recorte, f.cats],
   );
   // "Não informado" fica no fim da lista, depois dos valores reais.
   const ordenarComNaoInformado = (a: string, b: string) =>
@@ -115,51 +161,37 @@ export default function Timesheet() {
 
   const allTimes = useMemo(
     () =>
-      ([...new Set(timesheet.map((r) => r.time).filter(Boolean))] as string[]).sort(
-        ordenarComNaoInformado,
-      ),
+      comSelecionados(
+        [...new Set(recorte("times").map((r) => r.time).filter(Boolean))] as string[],
+        f.times,
+      ).sort(ordenarComNaoInformado),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [timesheet],
+    [recorte, f.times],
   );
   const allStatus = useMemo(
     () =>
-      ([...new Set(timesheet.map((r) => r.st).filter(Boolean))] as string[]).sort(
-        ordenarComNaoInformado,
-      ),
+      comSelecionados(
+        [...new Set(recorte("sts").map((r) => r.st).filter(Boolean))] as string[],
+        f.sts,
+      ).sort(ordenarComNaoInformado),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [timesheet],
+    [recorte, f.sts],
   );
+  /** Clientes do recorte, do que mais consumiu horas faturáveis para o que menos. */
   const allClientes = useMemo(() => {
     const horas: Record<string, number> = {};
-    timesheet.filter((r) => r.b).forEach((r) => (horas[r.cl] = (horas[r.cl] || 0) + r.h));
-    return Object.keys(horas)
-      .filter(Boolean)
-      .sort((a, b) => horas[b] - horas[a]);
-  }, [timesheet]);
+    recorte("clientes")
+      .filter((r) => r.b)
+      .forEach((r) => (horas[r.cl] = (horas[r.cl] || 0) + r.h));
+    return comSelecionados(Object.keys(horas).filter(Boolean), f.clientes).sort(
+      (a, b) => (horas[b] ?? 0) - (horas[a] ?? 0),
+    );
+  }, [recorte, f.clientes]);
+
   const periodo = useMemo(() => {
     const datas = timesheet.map((r) => r.d).filter(Boolean).sort();
     return { min: datas[0] ?? "", max: datas[datas.length - 1] ?? "" };
   }, [timesheet]);
-
-  // ── Filtragem ───────────────────────────────────────────────────────
-  const rows = useMemo(
-    () =>
-      timesheet.filter((r) => {
-        if (f.colabs.length && !f.colabs.includes(r.c)) return false;
-        if (f.anos.length && !f.anos.includes(String(r.a))) return false;
-        if (f.meses.length && !f.meses.includes(r.m)) return false;
-        if (f.cats.length && !f.cats.includes(r.cat)) return false;
-        if (f.clientes.length && !f.clientes.includes(r.cl)) return false;
-        if (f.times.length && !f.times.includes(r.time ?? "")) return false;
-        if (f.sts.length && !f.sts.includes(r.st ?? "")) return false;
-        if (f.tipo === "billable" && !r.b) return false;
-        if (f.tipo === "nonbillable" && r.b) return false;
-        if (f.de && r.d && r.d < f.de) return false;
-        if (f.ate && r.d && r.d > f.ate) return false;
-        return true;
-      }),
-    [timesheet, f],
-  );
 
   /** Time e status de cada colaborador, para filtrar a capacidade. */
   const infoColab = useMemo(() => {
