@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 
 import ChartCanvas from "@/components/charts/ChartCanvas";
 import { linhaVertical } from "@/components/charts/plugins";
@@ -96,7 +97,7 @@ export default function ColabDetalhe({ colab, rows, disponiveis, capPorMes, onCl
     return Object.entries(m).sort((a, b) => b[1] - a[1]);
   }, [linhas]);
 
-  return (
+  const conteudo = (
     <div
       className={"modal-overlay" + (visivel ? " show" : "")}
       onClick={(e) => {
@@ -404,4 +405,12 @@ export default function ColabDetalhe({ colab, rows, disponiveis, capPorMes, onCl
       </div>
     </div>
   );
+
+  /**
+   * O bloco da seção roda sob uma animação com `transform`, e um ancestral
+   * transformado faz `position: fixed` se ancorar nele em vez da janela — o
+   * detalhe abria centralizado no meio da página, fora da tela, deixando só o
+   * desfoque à vista. O portal devolve o card ao `body`, fora desse contexto.
+   */
+  return typeof document === "undefined" ? null : createPortal(conteudo, document.body);
 }
