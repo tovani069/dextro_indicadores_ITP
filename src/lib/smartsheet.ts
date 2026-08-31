@@ -45,6 +45,8 @@ type Pasta = {
 
 const ANO = /^(19|20)\d{2}$/;
 const NUMERADA = /^\d+\.\s/;
+/** Pasta pessoal ("Alan Farias 2024") — não é nome de time. */
+const TERMINA_EM_ANO = /(19|20)\d{2}\s*$/;
 
 /**
  * Time de cada planilha pela pasta em que ela está guardada.
@@ -63,7 +65,10 @@ async function lerTimesPorPasta(revalidate: number): Promise<Map<string, string>
   const porPlanilha = new Map<string, string>();
   const percorrer = (pastas: Pasta[] | undefined, time: string | null) => {
     (pastas ?? []).forEach((pasta) => {
-      const ehTime = !ANO.test(pasta.name) && !NUMERADA.test(pasta.name);
+      const ehTime =
+        !ANO.test(pasta.name) &&
+        !NUMERADA.test(pasta.name) &&
+        !TERMINA_EM_ANO.test(pasta.name);
       const atual = ehTime ? pasta.name.trim() : time;
       if (atual) (pasta.sheets ?? []).forEach((s) => porPlanilha.set(s.name, atual));
       percorrer(pasta.folders, atual);
