@@ -589,11 +589,6 @@ export default function Timesheet({ filtrosIniciais }: Props = {}) {
         />
       </div>
 
-      {/* Com o recorte em uma pessoa só, cabe mostrar o preenchimento dela dia a dia */}
-      {f.colabs.length === 1 && (
-        <CardDiasColab colab={f.colabs[0]} linhas={rows} periodo={periodoFiltro} />
-      )}
-
       {/* Barras horizontais — clique filtra todos os visuais */}
       <div className="section-title" style={{ marginBottom: 10 }}>
         Distribuição de Horas
@@ -986,6 +981,11 @@ export default function Timesheet({ filtrosIniciais }: Props = {}) {
           ))
         )}
       </div>
+
+      {/* Com o recorte em uma pessoa só, o dia a dia dela cabe logo abaixo do card */}
+      {f.colabs.length === 1 && (
+        <CardDiasColab colab={f.colabs[0]} linhas={rows} periodo={periodoFiltro} />
+      )}
 
       {/* Ranking */}
       <div className="table-card">
