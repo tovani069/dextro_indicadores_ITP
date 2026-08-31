@@ -340,6 +340,17 @@ table.matriz tr.matriz-total td{border-top:1px solid var(--border2);border-botto
 .colab-card:hover{transform:translateY(-3px)}
 .colab-card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
+/* Busca dentro do cabeçalho de uma tabela */
+.input-busca{
+  width:270px;max-width:42vw;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:8px;padding:6px 10px;font-size:11px;
+  color:var(--text);font-family:"IBM Plex Sans",sans-serif;
+  transition:border-color .2s cubic-bezier(.22,1,.36,1);
+}
+.input-busca:focus{outline:none;border-color:#4F8EFF88}
+.input-busca::placeholder{color:var(--text3)}
+
 /* KPI que abre um detalhe ao clique */
 .kpi-clicavel{
   cursor:pointer;

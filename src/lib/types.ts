@@ -22,6 +22,10 @@ export type TSRow = {
   time?: string;
   /** Status do colaborador (Ativo / Inativo) — opcional */
   st?: string;
+  /** Descrição da atividade lançada — opcional (só na base do Smartsheet) */
+  desc?: string;
+  /** Número do chamado / contrato — opcional */
+  ch?: string;
 };
 
 /**

@@ -108,6 +108,12 @@ function indicePorTitulo(colunas: Coluna[]) {
   return idx;
 }
 
+/** Primeiro título que existir no relatório — os nomes variam entre as bases. */
+function primeiraColuna(idx: Record<string, number>, ...titulos: string[]) {
+  for (const t of titulos) if (idx[t] !== undefined) return idx[t];
+  return undefined;
+}
+
 const texto = (c?: Celula) =>
   String(c?.value ?? c?.displayValue ?? "").trim();
 
@@ -184,6 +190,14 @@ async function lerLancamentos(
     }>(`/reports/${FONTES.lancamentos}?pageSize=${TAMANHO}&page=${pagina}`, revalidate);
 
     const idx = indicePorTitulo(rel.columns);
+    const iDesc = primeiraColuna(idx, "Descrição", "Descricao", "Descrição da Atividade");
+    const iChamado = primeiraColuna(
+      idx,
+      "Número do Chamado/Contrato",
+      "Numero do Chamado/Contrato",
+      "Nº do Chamado/Contrato",
+      "Chamado/Contrato",
+    );
     totalPaginas = Math.max(1, Math.ceil((rel.totalRowCount || 0) / TAMANHO));
 
     rel.rows.forEach((r) => {
@@ -198,6 +212,10 @@ async function lerLancamentos(
       const [ano, mes] = data.split("-").map(Number);
       if (!ano || !mes) return;
 
+      // Só o que tem conteúdo vai no payload: são dezenas de milhares de linhas.
+      const desc = iDesc === undefined ? "" : texto(r.cells[iDesc]);
+      const ch = iChamado === undefined ? "" : texto(r.cells[iChamado]);
+
       out.push({
         c: info?.c || nomeDaPlanilha(planilha),
         cl: cliente,
@@ -209,6 +227,8 @@ async function lerLancamentos(
         d: data,
         ...(info?.time ? { time: info.time } : {}),
         ...(info?.st ? { st: info.st } : {}),
+        ...(desc ? { desc } : {}),
+        ...(ch ? { ch } : {}),
       });
     });
 

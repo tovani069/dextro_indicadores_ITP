@@ -34,6 +34,7 @@ import {
 import type { TSRow } from "@/lib/types";
 import CardDiasColab from "./CardDiasColab";
 import ColabDetalhe from "./ColabDetalhe";
+import TabelaLancamentos from "./TabelaLancamentos";
 
 type Tipo = "todos" | "billable" | "nonbillable";
 
@@ -948,6 +949,9 @@ export default function Timesheet({ filtrosIniciais }: Props = {}) {
           </table>
         </div>
       </div>
+
+      {/* Base crua, no formato do relatório de origem */}
+      <TabelaLancamentos rows={rows} onColab={(c) => toggle("colabs", c)} />
 
       {/* Cards por colaborador */}
       <div className="section-title" style={{ margin: "20px 0 12px" }}>
