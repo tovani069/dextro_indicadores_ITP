@@ -241,6 +241,18 @@ export default function Timesheet({ filtrosIniciais }: Props = {}) {
     return m;
   }, [capacidadeFiltrada]);
 
+  /**
+   * Clique na barra escolhe um valor só: clicar em outra pessoa troca a
+   * seleção em vez de somar. Acumular continua sendo papel do filtro suspenso.
+   */
+  function escolherUnico(grupo: GrupoLista, value: string) {
+    setF((prev) => {
+      const arr = prev[grupo];
+      const soEste = arr.length === 1 && arr[0] === value;
+      return { ...prev, [grupo]: soEste ? [] : [value] };
+    });
+  }
+
   function toggle(grupo: GrupoLista, value: string) {
     setF((prev) => {
       const arr = prev[grupo];
@@ -593,7 +605,7 @@ export default function Timesheet({ filtrosIniciais }: Props = {}) {
       <div className="section-title" style={{ marginBottom: 10 }}>
         Distribuição de Horas
         <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0, color: "var(--text3)", marginLeft: 8 }}>
-          clique em uma barra para filtrar
+          clique em uma barra para filtrar — uma por vez; para somar, use os filtros acima
         </span>
       </div>
       <div
@@ -609,28 +621,28 @@ export default function Timesheet({ filtrosIniciais }: Props = {}) {
           items={porColabPreenchidas}
           color="#4F8EFF"
           selected={f.colabs}
-          onPick={(v) => toggle("colabs", v)}
+          onPick={(v) => escolherUnico("colabs", v)}
         />
         <RankBars
           title="Horas faturáveis por Colaborador"
           items={porColabFaturaveis}
           color="#00C8A0"
           selected={f.colabs}
-          onPick={(v) => toggle("colabs", v)}
+          onPick={(v) => escolherUnico("colabs", v)}
         />
         <RankBars
           title="Horas faturáveis por Cliente"
           items={porCliente.map((i) => ({ ...i, label: stripPrefix(i.label) }))}
           color="#20C0FF"
           selected={f.clientes}
-          onPick={(v) => toggle("clientes", v)}
+          onPick={(v) => escolherUnico("clientes", v)}
         />
         <RankBars
           title="Horas por Categoria"
           items={porCategoria.map((i) => ({ ...i, label: rotuloCat(i.label) }))}
           color="#6C3FFF"
           selected={f.cats}
-          onPick={(v) => v && toggle("cats", v)}
+          onPick={(v) => v && escolherUnico("cats", v)}
         />
       </div>
 
