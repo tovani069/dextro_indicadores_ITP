@@ -46,23 +46,36 @@ function feriados(ano: number): Set<string> {
 
 const cacheFeriados = new Map<number, Set<string>>();
 
-/** Dias úteis do mês (seg–sex, descontando feriados nacionais). */
-export function diasUteis(ano: number, mes: number): number {
+function feriadosDe(ano: number): Set<string> {
   let f = cacheFeriados.get(ano);
   if (!f) {
     f = feriados(ano);
     cacheFeriados.set(ano, f);
   }
+  return f;
+}
+
+function util(d: Date): boolean {
+  const semana = d.getUTCDay();
+  if (semana === 0 || semana === 6) return false;
+  return !feriadosDe(d.getUTCFullYear()).has(chave(d));
+}
+
+/** Dias úteis do mês (seg–sex, descontando feriados nacionais). */
+export function diasUteis(ano: number, mes: number): number {
   const ultimo = new Date(Date.UTC(ano, mes, 0)).getUTCDate();
   let total = 0;
   for (let dia = 1; dia <= ultimo; dia++) {
-    const d = new Date(Date.UTC(ano, mes - 1, dia));
-    const semana = d.getUTCDay();
-    if (semana === 0 || semana === 6) continue;
-    if (f.has(chave(d))) continue;
-    total++;
+    if (util(new Date(Date.UTC(ano, mes - 1, dia)))) total++;
   }
   return total;
+}
+
+/** Um dia (data ISO `YYYY-MM-DD`) é útil? Mesma régua de `diasUteis`. */
+export function ehDiaUtil(iso: string): boolean {
+  const [ano, mes, dia] = iso.split("-").map(Number);
+  if (!ano || !mes || !dia) return false;
+  return util(new Date(Date.UTC(ano, mes - 1, dia)));
 }
 
 /**

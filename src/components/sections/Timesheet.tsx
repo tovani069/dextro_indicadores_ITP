@@ -414,6 +414,9 @@ export default function Timesheet({ filtrosIniciais }: Props = {}) {
   /** Muda a cada novo recorte; usada para reanimar as listas. */
   const chaveFiltro = useMemo(() => JSON.stringify(f), [f]);
 
+  /** Janela de datas dos filtros, repassada ao detalhe do colaborador. */
+  const periodoFiltro = useMemo(() => ({ de: f.de, ate: f.ate }), [f.de, f.ate]);
+
   const catOptions: FilterOption[] = allCats.map((c) => ({
     value: c,
     label: rotuloCat(c),
@@ -1081,6 +1084,7 @@ export default function Timesheet({ filtrosIniciais }: Props = {}) {
           rows={rows}
           disponiveis={capPorColab.get(detalhe) ?? 0}
           capPorMes={capPorColabMes}
+          periodo={periodoFiltro}
           onClose={() => setDetalhe(null)}
         />
       )}

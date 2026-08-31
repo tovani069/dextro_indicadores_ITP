@@ -17,6 +17,7 @@ import {
   stripPrefix,
 } from "@/lib/timesheet";
 import type { TSRow } from "@/lib/types";
+import ColabDias from "./ColabDias";
 
 type Props = {
   colab: string;
@@ -26,12 +27,23 @@ type Props = {
   disponiveis: number;
   /** Horas disponíveis por `colab|ano|mês`. */
   capPorMes: Map<string, number>;
+  /** Período dos filtros (YYYY-MM-DD); vazio = sem limite. */
+  periodo?: { de: string; ate: string };
   onClose: () => void;
 };
 
 /** Detalhe do colaborador em destaque, sobre o restante da tela desfocado. */
-export default function ColabDetalhe({ colab, rows, disponiveis, capPorMes, onClose }: Props) {
+export default function ColabDetalhe({
+  colab,
+  rows,
+  disponiveis,
+  capPorMes,
+  periodo,
+  onClose,
+}: Props) {
   const [visivel, setVisivel] = useState(false);
+  /** Relatório dia a dia sobreposto ao card. */
+  const [verDias, setVerDias] = useState(false);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisivel(true));
@@ -40,7 +52,10 @@ export default function ColabDetalhe({ colab, rows, disponiveis, capPorMes, onCl
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      // Com o dia a dia aberto, o Esc fecha só ele — o detalhe continua atrás.
+      if (e.key !== "Escape") return;
+      if (verDias) setVerDias(false);
+      else onClose();
     }
     document.addEventListener("keydown", onKey);
     // trava a rolagem do fundo enquanto o detalhe está aberto
@@ -50,7 +65,7 @@ export default function ColabDetalhe({ colab, rows, disponiveis, capPorMes, onCl
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = overflowAnterior;
     };
-  }, [onClose]);
+  }, [onClose, verDias]);
 
   const { linhas, total, billable, nonBillable } = useMemo(
     () => resumoColaborador(rows, colab),
@@ -58,6 +73,9 @@ export default function ColabDetalhe({ colab, rows, disponiveis, capPorMes, onCl
   );
   const pctCharg = Math.round(chargeability(billable, total, disponiveis));
   const cor = chargColor(pctCharg);
+  /** Quanto das horas disponíveis o colaborador chegou a lançar. */
+  const pctPreench = disponiveis > 0 ? Math.round((total / disponiveis) * 100) : null;
+  const corPreench = pctPreench === null ? "var(--text3)" : pctPreench >= 95 ? "#00C8A0" : pctPreench >= 70 ? "#FF9B00" : "#FF5C6A";
 
   const time = linhas.find((r) => r.time)?.time;
   const status = linhas.find((r) => r.st)?.st;
@@ -177,7 +195,6 @@ export default function ColabDetalhe({ colab, rows, disponiveis, capPorMes, onCl
               { rotulo: "Horas totais", valor: fmtH(total), cor: "var(--text)" },
               { rotulo: "Billable", valor: fmtH(billable), cor: "#00C8A0" },
               { rotulo: "Non-billable", valor: fmtH(nonBillable), cor: "#FF5C6A" },
-              { rotulo: "Lançamentos", valor: linhas.length.toLocaleString("pt-BR"), cor: "var(--text2)" },
             ].map((k) => (
               <div
                 key={k.rotulo}
@@ -194,6 +211,39 @@ export default function ColabDetalhe({ colab, rows, disponiveis, capPorMes, onCl
                 </div>
               </div>
             ))}
+
+            {/* Preenchimento: horas lançadas ÷ disponíveis. Abre o dia a dia. */}
+            <div
+              className="kpi-clicavel"
+              role="button"
+              tabIndex={0}
+              title="Ver o preenchimento dia a dia"
+              onClick={() => setVerDias(true)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setVerDias(true);
+                }
+              }}
+              style={{
+                background: "var(--bg3)",
+                border: "1px solid var(--border)",
+                borderRadius: 10,
+                padding: "10px 14px",
+              }}
+            >
+              <div className="kpi-label">% Preenchimento</div>
+              <div className="mono" style={{ fontSize: 19, fontWeight: 600, color: corPreench }}>
+                {pctPreench === null ? "—" : pctPreench + "%"}
+              </div>
+              <div style={{ fontSize: 10, color: "var(--text3)", marginTop: 2 }}>
+                {pctPreench === null
+                  ? "sem base de capacidade"
+                  : `${fmtH(total)} de ${fmtH(disponiveis)}`}
+                {" · "}
+                <span style={{ color: "#4F8EFF" }}>ver dia a dia →</span>
+              </div>
+            </div>
           </div>
 
           {/* Barra de chargeability com a marca da meta */}
@@ -403,6 +453,15 @@ export default function ColabDetalhe({ colab, rows, disponiveis, capPorMes, onCl
           </div>
         </div>
       </div>
+
+      {verDias && (
+        <ColabDias
+          colab={colab}
+          linhas={linhas}
+          periodo={periodo}
+          onClose={() => setVerDias(false)}
+        />
+      )}
     </div>
   );
 
