@@ -72,6 +72,8 @@ export default function RankBars({
                     backgroundColor: ordenados.map((i) =>
                       !temSelecao || selected.includes(i.value) ? color : color + "33",
                     ),
+                    // Passar o mouse já mostra a barra na cor viva, como prévia do clique.
+                    hoverBackgroundColor: ordenados.map(() => color),
                     borderRadius: 4,
                     borderSkipped: false,
                     maxBarThickness: 18,
@@ -84,7 +86,10 @@ export default function RankBars({
                 indexAxis: "y",
                 layout: { padding: { right: 42 } },
                 // Clicar em qualquer ponto da faixa seleciona a barra, como no relatório.
-                interaction: { mode: "index", intersect: false },
+                // `axis: "y"` é obrigatório em barra horizontal: sem isso o Chart.js
+                // procura o item mais próximo no eixo X e sempre acerta a barra mais
+                // longa, não a linha sob o cursor.
+                interaction: { mode: "index", intersect: false, axis: "y" },
                 onClick: (_e, els) => {
                   const i = els[0]?.index;
                   if (i !== undefined && pickRef.current) pickRef.current(ordenados[i].value);
@@ -102,7 +107,11 @@ export default function RankBars({
                     },
                   },
                   datalabels: {
-                    color: "#9096B0",
+                    // O rótulo acompanha a barra: vivo no selecionado, apagado nos demais.
+                    color: (c: { dataIndex: number }) =>
+                      !temSelecao || selected.includes(ordenados[c.dataIndex]?.value)
+                        ? "#9096B0"
+                        : "#9096B055",
                     font: { size: 9 },
                     anchor: "end",
                     align: "end",
@@ -111,7 +120,16 @@ export default function RankBars({
                 },
                 scales: {
                   x: { display: false, beginAtZero: true },
-                  y: { grid: { display: false }, ticks: { color: "#9096B0", font: { size: 10 } } },
+                  y: {
+                    grid: { display: false },
+                    ticks: {
+                      color: (c: { index: number }) =>
+                        !temSelecao || selected.includes(ordenados[c.index]?.value)
+                          ? "#9096B0"
+                          : "#9096B055",
+                      font: { size: 10 },
+                    },
+                  },
                 },
               },
             })}

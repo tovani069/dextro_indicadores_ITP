@@ -298,33 +298,42 @@ export default function Timesheet({ filtrosIniciais }: Props = {}) {
   const abaixo = colabChargs.filter((v) => v < CHARGE_TARGET).length;
 
   // ── Séries dos visuais do BI ────────────────────────────────────────
+  /**
+   * Cada barra usa o recorte que ignora o próprio filtro. Assim, ao clicar em
+   * um colaborador, os outros continuam na lista — só que apagados — em vez de
+   * o gráfico ficar com uma barra só, como acontece no Power BI.
+   */
+  const rowsSemColabs = useMemo(() => recorte("colabs"), [recorte]);
+  const rowsSemClientes = useMemo(() => recorte("clientes"), [recorte]);
+  const rowsSemCats = useMemo(() => recorte("cats"), [recorte]);
+
   const porColabPreenchidas = useMemo(() => {
     const m: Record<string, number> = {};
-    rows.forEach((r) => (m[r.c] = (m[r.c] || 0) + r.h));
+    rowsSemColabs.forEach((r) => (m[r.c] = (m[r.c] || 0) + r.h));
     return Object.entries(m).map(([value, total]) => ({ value, label: value, total }));
-  }, [rows]);
+  }, [rowsSemColabs]);
 
   const porColabFaturaveis = useMemo(() => {
     const m: Record<string, number> = {};
-    rows.filter((r) => r.b).forEach((r) => (m[r.c] = (m[r.c] || 0) + r.h));
+    rowsSemColabs.filter((r) => r.b).forEach((r) => (m[r.c] = (m[r.c] || 0) + r.h));
     return Object.entries(m).map(([value, total]) => ({ value, label: value, total }));
-  }, [rows]);
+  }, [rowsSemColabs]);
 
   const porCliente = useMemo(() => {
     const m: Record<string, number> = {};
-    rows.filter((r) => r.b).forEach((r) => (m[r.cl] = (m[r.cl] || 0) + r.h));
+    rowsSemClientes.filter((r) => r.b).forEach((r) => (m[r.cl] = (m[r.cl] || 0) + r.h));
     return Object.entries(m).map(([value, total]) => ({ value, label: value, total }));
-  }, [rows]);
+  }, [rowsSemClientes]);
 
   const porCategoria = useMemo(() => {
     const m: Record<string, number> = {};
-    rows.forEach((r) => (m[r.cat || "(Em branco)"] = (m[r.cat || "(Em branco)"] || 0) + r.h));
+    rowsSemCats.forEach((r) => (m[r.cat || "(Em branco)"] = (m[r.cat || "(Em branco)"] || 0) + r.h));
     return Object.entries(m).map(([value, total]) => ({
       value: value === "(Em branco)" ? "" : value,
       label: value,
       total,
     }));
-  }, [rows]);
+  }, [rowsSemCats]);
 
   /** Série histórica por MêsAno, no formato do relatório ("2026 1"). */
   const serie = useMemo(() => {
