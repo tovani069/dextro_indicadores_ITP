@@ -66,7 +66,7 @@ export default function TabelaLancamentos({ rows, onColab }: Props) {
   return (
     <div className="table-card">
       <div className="table-header">
-        <span className="table-title">Base de lançamentos</span>
+        <span className="table-title">Preenchimento dia a dia</span>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <input
             className="input-busca"
@@ -101,13 +101,13 @@ export default function TabelaLancamentos({ rows, onColab }: Props) {
                 Categoria{seta("cat")}
               </th>
               <th style={{ position: "sticky", top: 0, zIndex: 2, cursor: "default" }}>
-                Nº Chamado/Contrato
+                Número do Chamado/Contrato
               </th>
               <th
-                style={{ position: "sticky", top: 0, zIndex: 2, textAlign: "right", width: 96 }}
+                style={{ position: "sticky", top: 0, zIndex: 2, textAlign: "right", width: 110 }}
                 onClick={() => ordenar("h")}
               >
-                Duração{seta("h")}
+                Duração (Horas){seta("h")}
               </th>
               <th style={{ position: "sticky", top: 0, zIndex: 2, cursor: "default" }}>Descrição</th>
             </tr>

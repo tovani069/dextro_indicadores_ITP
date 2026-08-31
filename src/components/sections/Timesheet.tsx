@@ -32,7 +32,6 @@ import {
   stripPrefix,
 } from "@/lib/timesheet";
 import type { TSRow } from "@/lib/types";
-import CardDiasColab from "./CardDiasColab";
 import ColabDetalhe from "./ColabDetalhe";
 import TabelaLancamentos from "./TabelaLancamentos";
 
@@ -985,11 +984,6 @@ export default function Timesheet({ filtrosIniciais }: Props = {}) {
           ))
         )}
       </div>
-
-      {/* Com o recorte em uma pessoa só, o dia a dia dela cabe logo abaixo do card */}
-      {f.colabs.length === 1 && (
-        <CardDiasColab colab={f.colabs[0]} linhas={rows} periodo={periodoFiltro} />
-      )}
 
       {/* Ranking */}
       <div className="table-card">
