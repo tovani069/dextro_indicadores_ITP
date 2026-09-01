@@ -739,7 +739,7 @@ export default function Timesheet({ filtrosIniciais }: Props = {}) {
           <div className="chart-header">
             <span className="chart-title">Chargeability por Colaborador</span>
             <span className="mono" style={{ fontSize: 10, color: "var(--text3)" }}>
-              meta <span style={{ color: "#FF9B00" }}>{CHARGE_TARGET}%</span>
+              capacity <span style={{ color: "#FF9B00" }}>{CHARGE_TARGET}%</span>
             </span>
           </div>
           <div style={{ position: "relative", height: 200 }}>
@@ -821,7 +821,7 @@ export default function Timesheet({ filtrosIniciais }: Props = {}) {
                         c.stroke();
                         c.fillStyle = "#FF9B00";
                         c.font = "bold 10px IBM Plex Mono,monospace";
-                        c.fillText("Meta " + CHARGE_TARGET + "%", area.right - 72, yPos - 5);
+                        c.fillText("Capacity " + CHARGE_TARGET + "%", area.right - 92, yPos - 5);
                         c.restore();
                       },
                     },
