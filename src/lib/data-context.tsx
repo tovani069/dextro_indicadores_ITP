@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import {
   COLABORADORES,
@@ -38,6 +38,10 @@ type DataContextValue = {
   origem: OrigemTimesheet;
   /** Momento da leitura do Smartsheet (ISO), quando aplicável. */
   atualizadoEm: string | null;
+  /** `true` enquanto uma releitura do Smartsheet está em andamento. */
+  carregando: boolean;
+  /** Relê o Smartsheet na hora, sem passar por cache nenhum. */
+  recarregar: () => void;
 };
 
 const DataContext = createContext<DataContextValue | null>(null);
@@ -82,6 +86,38 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
   const [origem, setOrigem] = useState<OrigemTimesheet>("embutido");
   const [atualizadoEm, setAtualizadoEm] = useState<string | null>(null);
+  const [carregando, setCarregando] = useState(false);
+
+  /**
+   * `fresh` pula o cache da rota e do CDN: é o caminho de quem acabou de
+   * editar a planilha e quer ver o número mudar agora.
+   */
+  const lerTimesheet = useCallback(async (fresh = false) => {
+    setCarregando(true);
+    try {
+      const r = await fetch(
+        "/api/timesheet" + (fresh ? "?fresh=1" : ""),
+        fresh ? { cache: "no-store" } : undefined,
+      );
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      const p: PayloadApi = await r.json();
+      if (!p?.timesheet?.length) return;
+      setTimesheet(
+        enriquecer(p.timesheet.map((row) => ({ ...row, m: row.m || MESES[row.mo - 1] || "" }))),
+      );
+      if (p.capacidade?.length) setCapacidade(p.capacidade);
+      setOrigem("smartsheet");
+      setAtualizadoEm(p.atualizadoEm);
+    } catch (e) {
+      console.error("Smartsheet indisponível; exibindo os dados embutidos.", e);
+    } finally {
+      setCarregando(false);
+    }
+  }, []);
+
+  const recarregar = useCallback(() => {
+    void lerTimesheet(true);
+  }, [lerTimesheet]);
 
   useEffect(() => {
     try {
@@ -92,20 +128,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setHydrated(true);
 
     let cancelado = false;
-    fetch("/api/timesheet")
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status))))
-      .then((p: PayloadApi) => {
-        if (cancelado || !p?.timesheet?.length) return;
-        setTimesheet(
-          enriquecer(p.timesheet.map((r) => ({ ...r, m: r.m || MESES[r.mo - 1] || "" }))),
-        );
-        if (p.capacidade?.length) setCapacidade(p.capacidade);
-        setOrigem("smartsheet");
-        setAtualizadoEm(p.atualizadoEm);
-      })
-      .catch((e) => {
-        console.error("Smartsheet indisponível; exibindo os dados embutidos.", e);
-      });
+    void lerTimesheet();
     fetch("/api/plano")
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status))))
       .then((p: { plano: PlanoRow[] }) => {
@@ -119,7 +142,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelado = true;
     };
-  }, []);
+  }, [lerTimesheet]);
 
   const value = useMemo<DataContextValue>(
     () => ({
@@ -132,8 +155,20 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       hydrated,
       origem,
       atualizadoEm,
+      carregando,
+      recarregar,
     }),
-    [timesheet, capacidade, plano, planoCarregando, hydrated, origem, atualizadoEm],
+    [
+      timesheet,
+      capacidade,
+      plano,
+      planoCarregando,
+      hydrated,
+      origem,
+      atualizadoEm,
+      carregando,
+      recarregar,
+    ],
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

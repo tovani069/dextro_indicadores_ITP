@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { STORAGE_KEYS } from "@/lib/constants";
+import { useData } from "@/lib/data-context";
 
 type Props = {
   /** Ausente na página compartilhada, que não tem barra lateral. */
@@ -9,18 +10,22 @@ type Props = {
 };
 
 export default function Navbar({ onToggleSidebar }: Props) {
+  const { atualizadoEm, carregando, recarregar } = useData();
   const [dateStr, setDateStr] = useState("");
 
-  // A data só é conhecida no cliente — evita divergência com o HTML do servidor.
+  // A hora da leitura só é conhecida no cliente — evita divergência com o
+  // HTML do servidor.
   useEffect(() => {
+    const d = atualizadoEm ? new Date(atualizadoEm) : new Date();
     setDateStr(
-      new Date().toLocaleDateString("pt-BR", {
+      d.toLocaleString("pt-BR", {
         day: "2-digit",
         month: "2-digit",
-        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
       }),
     );
-  }, []);
+  }, [atualizadoEm]);
 
   function toggleTheme() {
     const el = document.documentElement;
@@ -61,7 +66,20 @@ export default function Navbar({ onToggleSidebar }: Props) {
       </div>
 
       <div className="nav-right">
-        <span className="nav-date mono">{dateStr && "Atualizado " + dateStr}</span>
+        <span className="nav-date mono">
+          {carregando ? "Lendo o Smartsheet…" : dateStr && "Atualizado " + dateStr}
+        </span>
+        <button
+          className="theme-btn"
+          onClick={recarregar}
+          disabled={carregando}
+          title="Ler a planilha agora, ignorando o cache"
+        >
+          <span className={carregando ? "girando" : undefined} style={{ display: "inline-block" }}>
+            ↻
+          </span>{" "}
+          Atualizar
+        </button>
         <button className="theme-btn" onClick={toggleTheme}>
           Tema
         </button>
