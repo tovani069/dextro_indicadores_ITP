@@ -1,6 +1,14 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import {
   COLABORADORES,
@@ -40,9 +48,13 @@ type DataContextValue = {
   atualizadoEm: string | null;
   /** `true` enquanto uma releitura do Smartsheet está em andamento. */
   carregando: boolean;
-  /** Relê o Smartsheet na hora, sem passar por cache nenhum. */
-  recarregar: () => void;
 };
+
+/** De quanto em quanto tempo a tela confere a planilha, com a aba à vista. */
+const INTERVALO_MS = 30_000;
+
+/** Intervalo mínimo entre duas leituras que ignoram o cache. */
+const ESPERA_LEITURA_DIRETA_MS = 20_000;
 
 const DataContext = createContext<DataContextValue | null>(null);
 
@@ -87,13 +99,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [origem, setOrigem] = useState<OrigemTimesheet>("embutido");
   const [atualizadoEm, setAtualizadoEm] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
+  /** Momento da última leitura direta, para não repetir a cada piscada de foco. */
+  const ultimaDireta = useRef(0);
 
   /**
-   * `fresh` pula o cache da rota e do CDN: é o caminho de quem acabou de
-   * editar a planilha e quer ver o número mudar agora.
+   * `fresh` pula o cache da rota e do CDN: é o caminho de quando alguém acabou
+   * de salvar a planilha e volta para a tela.
    */
   const lerTimesheet = useCallback(async (fresh = false) => {
-    setCarregando(true);
+    if (fresh) ultimaDireta.current = Date.now();
+    // Só a leitura direta acende o aviso; a checagem de fundo é silenciosa.
+    if (fresh) setCarregando(true);
     try {
       const r = await fetch(
         "/api/timesheet" + (fresh ? "?fresh=1" : ""),
@@ -111,13 +127,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       console.error("Smartsheet indisponível; exibindo os dados embutidos.", e);
     } finally {
-      setCarregando(false);
+      if (fresh) setCarregando(false);
     }
   }, []);
-
-  const recarregar = useCallback(() => {
-    void lerTimesheet(true);
-  }, [lerTimesheet]);
 
   useEffect(() => {
     try {
@@ -144,6 +156,32 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     };
   }, [lerTimesheet]);
 
+  /**
+   * A tela se mantém sozinha: confere a planilha a cada meio minuto enquanto
+   * está à vista e, ao voltar para a aba, faz uma leitura direta — que é o
+   * caso de quem salvou a planilha em outra janela e volta para conferir.
+   * Aba escondida não consulta nada.
+   */
+  useEffect(() => {
+    const conferir = () => {
+      if (document.visibilityState === "visible") void lerTimesheet();
+    };
+    const aoVoltar = () => {
+      if (document.visibilityState !== "visible") return;
+      if (Date.now() - ultimaDireta.current < ESPERA_LEITURA_DIRETA_MS) return;
+      void lerTimesheet(true);
+    };
+
+    const id = window.setInterval(conferir, INTERVALO_MS);
+    document.addEventListener("visibilitychange", aoVoltar);
+    window.addEventListener("focus", aoVoltar);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", aoVoltar);
+      window.removeEventListener("focus", aoVoltar);
+    };
+  }, [lerTimesheet]);
+
   const value = useMemo<DataContextValue>(
     () => ({
       timesheet,
@@ -156,19 +194,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       origem,
       atualizadoEm,
       carregando,
-      recarregar,
     }),
-    [
-      timesheet,
-      capacidade,
-      plano,
-      planoCarregando,
-      hydrated,
-      origem,
-      atualizadoEm,
-      carregando,
-      recarregar,
-    ],
+    [timesheet, capacidade, plano, planoCarregando, hydrated, origem, atualizadoEm, carregando],
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

@@ -3,18 +3,18 @@ import { NextResponse } from "next/server";
 import { carregarTimesheet } from "@/lib/smartsheet";
 
 /**
- * Um minuto: perto o bastante do ao vivo para uma edição na planilha aparecer
- * sozinha, e ainda assim uma leitura só do Smartsheet para todos que abrirem
- * a página nesse intervalo.
+ * Meio minuto: a tela confere nesse mesmo passo, então uma edição na planilha
+ * aparece sozinha em pouco tempo — e ainda assim é uma leitura só do
+ * Smartsheet para todos que abrirem a página no intervalo.
  */
-const REVALIDATE = 60;
+const REVALIDATE = 30;
 
 // O relatório tem dezenas de milhares de linhas; a leitura precisa de folga.
 export const maxDuration = 60;
 
 /**
- * `?fresh=1` ignora qualquer cache e lê o Smartsheet na hora — é o que o botão
- * "Atualizar" do cabeçalho usa quando alguém acabou de mexer na planilha.
+ * `?fresh=1` ignora qualquer cache e lê o Smartsheet na hora — é o que a tela
+ * usa ao voltar para a aba, quando alguém acabou de mexer na planilha.
  */
 export async function GET(req: Request) {
   const fresh = new URL(req.url).searchParams.get("fresh") === "1";

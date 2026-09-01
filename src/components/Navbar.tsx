@@ -10,7 +10,7 @@ type Props = {
 };
 
 export default function Navbar({ onToggleSidebar }: Props) {
-  const { atualizadoEm, carregando, recarregar } = useData();
+  const { atualizadoEm, carregando } = useData();
   const [dateStr, setDateStr] = useState("");
 
   // A hora da leitura só é conhecida no cliente — evita divergência com o
@@ -66,20 +66,9 @@ export default function Navbar({ onToggleSidebar }: Props) {
       </div>
 
       <div className="nav-right">
-        <span className="nav-date mono">
-          {carregando ? "Lendo o Smartsheet…" : dateStr && "Atualizado " + dateStr}
+        <span className="nav-date mono" title="A tela relê a planilha sozinha">
+          {carregando ? "Atualizando…" : dateStr && "Atualizado " + dateStr}
         </span>
-        <button
-          className="theme-btn"
-          onClick={recarregar}
-          disabled={carregando}
-          title="Ler a planilha agora, ignorando o cache"
-        >
-          <span className={carregando ? "girando" : undefined} style={{ display: "inline-block" }}>
-            ↻
-          </span>{" "}
-          Atualizar
-        </button>
         <button className="theme-btn" onClick={toggleTheme}>
           Tema
         </button>
