@@ -12,6 +12,13 @@ import Timesheet from "./sections/Timesheet";
 import { DataProvider } from "@/lib/data-context";
 import type { SetorId } from "@/lib/types";
 
+/**
+ * Endereço do Timesheet para quem está de fora — o painel completo não existe
+ * nele. `NEXT_PUBLIC_TIMESHEET_URL` sobrescreve, caso o host mude.
+ */
+const LINK_TIMESHEET =
+  process.env.NEXT_PUBLIC_TIMESHEET_URL || "https://dextro-timesheet.vercel.app";
+
 export default function Dashboard() {
   const [setor, setSetor] = useState<SetorId>("plano");
   const [collapsed, setCollapsed] = useState(false);
@@ -24,15 +31,7 @@ export default function Dashboard() {
           setor={setor}
           collapsed={collapsed}
           onSelect={setSetor}
-          onCompartilhar={() =>
-            // Com o endereço separado configurado, o botão já entrega o link
-            // que vai para fora; sem ele, abre o Timesheet no próprio domínio.
-            window.open(
-              process.env.NEXT_PUBLIC_TIMESHEET_URL || "/timesheet",
-              "_blank",
-              "noopener",
-            )
-          }
+          onCompartilhar={() => window.open(LINK_TIMESHEET, "_blank", "noopener")}
         />
         <div className="main">
           {/* A key remonta o bloco a cada troca de aba, disparando a animação de entrada. */}
