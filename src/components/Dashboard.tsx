@@ -24,7 +24,7 @@ export default function Dashboard() {
           setor={setor}
           collapsed={collapsed}
           onSelect={setSetor}
-          onCompartilhar={() => window.open("/timesheet", "_blank", "noopener")}
+          onCompartilhar={() => window.open("/", "_blank", "noopener")}
         />
         <div className="main">
           {/* A key remonta o bloco a cada troca de aba, disparando a animação de entrada. */}
