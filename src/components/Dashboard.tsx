@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 
-import CompartilharTimesheet from "./CompartilharTimesheet";
 import Footer from "./Footer";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
@@ -16,7 +15,6 @@ import type { SetorId } from "@/lib/types";
 export default function Dashboard() {
   const [setor, setSetor] = useState<SetorId>("plano");
   const [collapsed, setCollapsed] = useState(false);
-  const [compartilhar, setCompartilhar] = useState(false);
 
   return (
     <DataProvider>
@@ -26,7 +24,7 @@ export default function Dashboard() {
           setor={setor}
           collapsed={collapsed}
           onSelect={setSetor}
-          onCompartilhar={() => setCompartilhar(true)}
+          onCompartilhar={() => window.open("/timesheet", "_blank", "noopener")}
         />
         <div className="main">
           {/* A key remonta o bloco a cada troca de aba, disparando a animação de entrada. */}
@@ -39,7 +37,6 @@ export default function Dashboard() {
         </div>
       </div>
       <Footer />
-      {compartilhar && <CompartilharTimesheet onClose={() => setCompartilhar(false)} />}
     </DataProvider>
   );
 }

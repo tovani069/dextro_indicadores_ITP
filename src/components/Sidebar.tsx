@@ -8,7 +8,7 @@ type Props = {
   setor: SetorId;
   collapsed: boolean;
   onSelect: (s: SetorId) => void;
-  /** Abre o gerador de link da aba Timesheet. */
+  /** Abre a aba Timesheet sozinha em uma nova guia. */
   onCompartilhar: () => void;
 };
 
@@ -30,7 +30,7 @@ export default function Sidebar({ setor, collapsed, onSelect, onCompartilhar }: 
               {sec.id === "timesheet" && (
                 <span
                   className="nav-link"
-                  title="Gerar link só desta aba"
+                  title="Abrir só esta aba em uma nova guia"
                   role="button"
                   tabIndex={0}
                   onClick={(e) => {
