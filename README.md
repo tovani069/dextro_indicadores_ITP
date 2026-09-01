@@ -93,6 +93,22 @@ O projeto é um app Next.js padrão — a Vercel detecta o framework automaticam
 > confira em **Project Settings → Build & Development Settings** se o *Framework Preset*
 > está como **Next.js** (e não "Other"/estático).
 
+### Endereço separado para o Timesheet
+
+O link do Timesheet vai para fora da diretoria, e apagar o `/timesheet` dele não pode
+levar ao painel completo. Por isso o Timesheet ganha um **host próprio**: nele, qualquer
+caminho cai no Timesheet, e o painel não existe. O domínio principal segue servindo tudo.
+
+1. Na Vercel, **Project Settings → Domains → Add**, cadastre `dextro-timesheet.vercel.app`
+   (ou outro nome livre terminado em `.vercel.app`, ou um subdomínio próprio começando
+   por `timesheet.`).
+2. Se usar um nome fora desse padrão, cadastre-o também em **Settings → Environment
+   Variables**, na variável `TIMESHEET_HOSTS` (vários separados por vírgula).
+3. Opcional: `NEXT_PUBLIC_TIMESHEET_URL` com a URL completa (`https://…`) faz o botão de
+   link da barra lateral já abrir o endereço de fora, pronto para copiar.
+
+O `/timesheet` do domínio principal continua respondendo, para não quebrar links antigos.
+
 ## Diferenças em relação à versão anterior
 
 - Importar dados atualiza a tela na hora, sem recarregar a página.

@@ -24,7 +24,15 @@ export default function Dashboard() {
           setor={setor}
           collapsed={collapsed}
           onSelect={setSetor}
-          onCompartilhar={() => window.open("/timesheet", "_blank", "noopener")}
+          onCompartilhar={() =>
+            // Com o endereço separado configurado, o botão já entrega o link
+            // que vai para fora; sem ele, abre o Timesheet no próprio domínio.
+            window.open(
+              process.env.NEXT_PUBLIC_TIMESHEET_URL || "/timesheet",
+              "_blank",
+              "noopener",
+            )
+          }
         />
         <div className="main">
           {/* A key remonta o bloco a cada troca de aba, disparando a animação de entrada. */}
