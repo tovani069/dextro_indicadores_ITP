@@ -10,13 +10,7 @@ import FilterDropdown, { type FilterOption } from "@/components/FilterDropdown";
 import FiltrosAtivos, { type Pill } from "@/components/FiltrosAtivos";
 import PeriodoDropdown from "@/components/PeriodoDropdown";
 import KpiCard from "@/components/KpiCard";
-import {
-  CHARGE_TARGET,
-  MESES,
-  MES_ABBR,
-  MES_ORD,
-  TS_CAT_COLORS,
-} from "@/lib/constants";
+import { MESES, MES_ABBR, MES_ORD, TS_CAT_COLORS } from "@/lib/constants";
 import { estimarCapacidade, JORNADA_PADRAO } from "@/lib/capacidade";
 import { useData } from "@/lib/data-context";
 import {
@@ -79,7 +73,9 @@ type Props = {
 };
 
 export default function Timesheet({ filtrosIniciais }: Props = {}) {
-  const { timesheet, capacidade } = useData();
+  const { timesheet, capacidade, config } = useData();
+  // Capacity vindo da planilha de configurações; a operação edita por lá.
+  const capacity = config.capacity;
   const [f, setF] = useState<Filtros>({ ...FILTROS_VAZIOS, ...filtrosIniciais });
   const [rankCol, setRankCol] = useState<RankCol>("chargeability");
   const [rankDir, setRankDir] = useState(-1);
@@ -307,8 +303,8 @@ export default function Timesheet({ filtrosIniciais }: Props = {}) {
     const b = cr.filter((r) => r.b).reduce((a, r) => a + r.h, 0);
     return chargeability(b, t, capPorColab.get(c) ?? 0);
   });
-  const acima = colabChargs.filter((v) => v >= CHARGE_TARGET).length;
-  const abaixo = colabChargs.filter((v) => v < CHARGE_TARGET).length;
+  const acima = colabChargs.filter((v) => v >= capacity).length;
+  const abaixo = colabChargs.filter((v) => v < capacity).length;
 
   // ── Séries dos visuais do BI ────────────────────────────────────────
   /**
@@ -593,7 +589,7 @@ export default function Timesheet({ filtrosIniciais }: Props = {}) {
           </div>
         </div>
         <KpiCard
-          label={`Meta ≥${CHARGE_TARGET}%`}
+          label={`Meta ≥${capacity}%`}
           value={`${acima} ✅ / ${abaixo} 🔴`}
           sub="acima / abaixo da meta"
           grad="linear-gradient(90deg,#6C3FFF,#FF40A0)"
@@ -739,12 +735,12 @@ export default function Timesheet({ filtrosIniciais }: Props = {}) {
           <div className="chart-header">
             <span className="chart-title">Chargeability por Colaborador</span>
             <span className="mono" style={{ fontSize: 10, color: "var(--text3)" }}>
-              capacity <span style={{ color: "#FF9B00" }}>{CHARGE_TARGET}%</span>
+              capacity <span style={{ color: "#FF9B00" }}>{capacity}%</span>
             </span>
           </div>
           <div style={{ position: "relative", height: 200 }}>
             <ChartCanvas
-              deps={[rows]}
+              deps={[rows, capacity]}
               build={(ctx, canvas) => {
                 const h = canvas.offsetHeight || 200;
                 const vals = colabs.map((c) => {
@@ -810,7 +806,7 @@ export default function Timesheet({ filtrosIniciais }: Props = {}) {
                         const y = chart.scales.y;
                         if (!area || !y) return;
                         const c = chart.ctx;
-                        const yPos = y.getPixelForValue(CHARGE_TARGET);
+                        const yPos = y.getPixelForValue(capacity);
                         c.save();
                         c.strokeStyle = "#FF9B00CC";
                         c.lineWidth = 1.5;
@@ -821,7 +817,7 @@ export default function Timesheet({ filtrosIniciais }: Props = {}) {
                         c.stroke();
                         c.fillStyle = "#FF9B00";
                         c.font = "bold 10px IBM Plex Mono,monospace";
-                        c.fillText("Capacity " + CHARGE_TARGET + "%", area.right - 92, yPos - 5);
+                        c.fillText("Capacity " + capacity + "%", area.right - 92, yPos - 5);
                         c.restore();
                       },
                     },
@@ -1020,7 +1016,8 @@ export default function Timesheet({ filtrosIniciais }: Props = {}) {
             {rank.map((r, i) => {
               const c = r.chargeability;
               const col = chargColor(c);
-              const lbl = c >= CHARGE_TARGET ? "✅ Meta" : c >= 50 ? "🟡 Atenção" : "🔴 Abaixo";
+              const lbl =
+                c >= capacity ? "✅ Meta" : c >= config.atencao ? "🟡 Atenção" : "🔴 Abaixo";
               return (
                 <tr key={r.colab}>
                   <td className="mono" style={{ fontSize: 11, color: "var(--text3)" }}>
@@ -1066,7 +1063,7 @@ export default function Timesheet({ filtrosIniciais }: Props = {}) {
                         style={{
                           position: "absolute",
                           top: 0,
-                          left: CHARGE_TARGET + "%",
+                          left: capacity + "%",
                           width: 1.5,
                           height: "100%",
                           background: "#FF9B00BB",
@@ -1123,6 +1120,7 @@ function ColabCard({
   capPorMes: Map<string, number>;
   onAbrir: () => void;
 }) {
+  const { config } = useData();
   const cr = rows.filter((r) => r.c === colab);
   const tot = cr.reduce((a, r) => a + r.h, 0);
   const bill = cr.filter((r) => r.b).reduce((a, r) => a + r.h, 0);
@@ -1223,7 +1221,7 @@ function ColabCard({
           }}
         >
           <span>Chargeability</span>
-          <span className="mono">Meta: {CHARGE_TARGET}%</span>
+          <span className="mono">Meta: {config.capacity}%</span>
         </div>
         <div
           style={{
@@ -1246,7 +1244,7 @@ function ColabCard({
             style={{
               position: "absolute",
               top: 0,
-              left: CHARGE_TARGET + "%",
+              left: config.capacity + "%",
               width: 2,
               height: "100%",
               background: "#FF9B00BB",

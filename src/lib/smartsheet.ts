@@ -1,5 +1,6 @@
+import { CONFIG_PADRAO, percentual } from "./config-painel";
 import { ehFaturavel } from "./timesheet";
-import type { CapacidadeRow, PlanoRow, TSRow } from "./types";
+import type { CapacidadeRow, ConfigPainel, PlanoRow, TSRow } from "./types";
 
 /**
  * Leitura da área de trabalho "DEXTRO | IT PROTECT TIME SHEET" no Smartsheet.
@@ -18,6 +19,11 @@ export const FONTES = {
   colaboradores: process.env.SMARTSHEET_SHEET_COLABORADORES ?? "1249337635983236",
   /** Planilha "Horas disponíveis" — capacidade por colaborador e mês. */
   capacidade: process.env.SMARTSHEET_SHEET_CAPACIDADE ?? "8194665899577220",
+  /**
+   * Planilha "Painel ITP | Configurações" — parâmetros que a operação ajusta
+   * sem mexer no código, hoje o capacity e o limite de atenção.
+   */
+  config: process.env.SMARTSHEET_SHEET_CONFIG ?? "882692785655684",
   /**
    * Relatórios "Desenvolvimento de Programas e Ações" — o Plano Estratégico
    * ITP, uma versão por ciclo anual, consolidando as planilhas por perspectiva.
@@ -85,6 +91,7 @@ export type PayloadTimesheet = {
   timesheet: Omit<TSRow, "m">[];
   capacidade: CapacidadeRow[];
   colaboradores: ColaboradorInfo[];
+  config: ConfigPainel;
   atualizadoEm: string;
 };
 
@@ -172,6 +179,54 @@ async function lerCapacidade(revalidate: number): Promise<CapacidadeRow[]> {
   return out;
 }
 
+/** Nome do parâmetro sem acento, espaço ou pontuação — "Capacity (%)" → "capacity". */
+const chaveConfig = (s: string) =>
+  // NFD separa o acento da letra; o filtro seguinte descarta os dois.
+  s.normalize("NFD").toLowerCase().replace(/[^a-z]/g, "");
+
+/**
+ * Parâmetros da planilha de configurações. Qualquer falha (planilha renomeada,
+ * célula em branco, valor fora da faixa) cai nos padrões: o painel nunca fica
+ * sem capacity por causa de uma edição errada.
+ */
+async function lerConfig(revalidate: number): Promise<ConfigPainel> {
+  try {
+    const sheet = await smartsheet<{ columns: Coluna[]; rows: Linha[] }>(
+      `/sheets/${FONTES.config}`,
+      revalidate,
+    );
+    const idx = indicePorTitulo(sheet.columns);
+    const iParam = primeiraColuna(idx, "Parâmetro", "Parametro");
+    const iValor = primeiraColuna(idx, "Valor");
+    if (iParam === undefined || iValor === undefined) return CONFIG_PADRAO;
+
+    const valores = new Map<string, unknown>();
+    sheet.rows.forEach((r) => {
+      const chave = chaveConfig(texto(r.cells[iParam]));
+      if (chave) valores.set(chave, r.cells[iValor]?.value ?? r.cells[iValor]?.displayValue);
+    });
+
+    const achar = (teste: (chave: string) => boolean) => {
+      for (const [chave, valor] of valores) if (teste(chave)) return valor;
+      return undefined;
+    };
+
+    return {
+      capacity: percentual(
+        achar((k) => k.includes("capacity") || k.includes("meta")),
+        CONFIG_PADRAO.capacity,
+      ),
+      atencao: percentual(
+        achar((k) => k.includes("atencao")),
+        CONFIG_PADRAO.atencao,
+      ),
+    };
+  } catch (e) {
+    console.error("Configurações do painel indisponíveis; usando os padrões.", e);
+    return CONFIG_PADRAO;
+  }
+}
+
 /** O relatório é grande (dezenas de milhares de linhas): lido em páginas. */
 async function lerLancamentos(
   porPlanilha: Map<string, ColaboradorInfo>,
@@ -241,10 +296,11 @@ async function lerLancamentos(
 /** Lê as fontes e devolve tudo já no formato do dashboard. */
 export async function carregarTimesheet(revalidate = 1800): Promise<PayloadTimesheet> {
   const porPlanilha = await lerColaboradores(revalidate);
-  const [timesPorPasta, timesheet, capacidade] = await Promise.all([
+  const [timesPorPasta, timesheet, capacidade, config] = await Promise.all([
     lerTimesPorPasta(revalidate).catch(() => new Map<string, string>()),
     lerLancamentos(porPlanilha, revalidate),
     lerCapacidade(revalidate),
+    lerConfig(revalidate),
   ]);
 
   // A pasta manda no time; o Setor do cadastro fica como reserva. Quando há
@@ -268,6 +324,7 @@ export async function carregarTimesheet(revalidate = 1800): Promise<PayloadTimes
     timesheet,
     capacidade,
     colaboradores: [...colaboradores.values()],
+    config,
     atualizadoEm: new Date().toISOString(),
   };
 }

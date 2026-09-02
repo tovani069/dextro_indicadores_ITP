@@ -62,6 +62,7 @@ de ambiente na Vercel) nunca chega ao navegador. A leitura é cacheada por 30 mi
 | Relatório *Base todos os lançamentos* | lançamentos de horas (o colaborador sai do nome da planilha de origem) |
 | Planilha *Cadastro de Colaboradores* | nome oficial + Time (Setor) + Status |
 | Planilha *Horas disponíveis* | capacidade por colaborador/mês, base do % Preenchimento |
+| Planilha *Painel ITP \| Configurações* | capacity (meta de chargeability) e limite de atenção |
 
 Se a leitura falhar, o dashboard exibe a base embutida em `src/data/timesheet.json` e o card
 "Horas Disponíveis" passa a mostrar a capacidade estimada (dias úteis × 8h).
@@ -72,6 +73,11 @@ Se a leitura falhar, o dashboard exibe a base embutida em `src/data/timesheet.js
   7. Investigação de Dados e 8. Relatórios — e não pelo cliente. Horas no cliente interno (ITP)
   nessas categorias são faturáveis.
 - **Chargeability** = horas faturáveis ÷ horas **disponíveis** (não ÷ preenchidas).
+- **Capacity** (a meta) não está no código: é a linha *Capacity (%)* da planilha
+  *Painel ITP | Configurações*, no mesmo workspace. A operação edita a célula e a tela pega o
+  novo valor na releitura seguinte, sem deploy. A linha *Limite de atenção (%)* define onde o
+  amarelo vira vermelho. Valor em branco ou fora de 1–100 cai nos padrões de
+  [src/lib/constants.ts](src/lib/constants.ts) (75% e 50%).
 
 As demais seções — **Plano de Ação**, **Indicadores** e **Orçamento** — usam os JSON de
 `src/data/`. Para atualizá-las, edite o arquivo e faça um novo deploy:

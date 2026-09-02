@@ -5,7 +5,8 @@ import { createPortal } from "react-dom";
 
 import ChartCanvas from "@/components/charts/ChartCanvas";
 import { linhaVertical } from "@/components/charts/plugins";
-import { CHARGE_TARGET, MESES, MES_ABBR, TS_CAT_COLORS } from "@/lib/constants";
+import { MESES, MES_ABBR, TS_CAT_COLORS } from "@/lib/constants";
+import { useData } from "@/lib/data-context";
 import {
   chargBg,
   chargColor,
@@ -41,6 +42,8 @@ export default function ColabDetalhe({
   periodo,
   onClose,
 }: Props) {
+  const { config } = useData();
+  const capacity = config.capacity;
   const [visivel, setVisivel] = useState(false);
   /** Relatório dia a dia sobreposto ao card. */
   const [verDias, setVerDias] = useState(false);
@@ -257,7 +260,7 @@ export default function ColabDetalhe({
             }}
           >
             <span>Chargeability</span>
-            <span className="mono">Meta: {CHARGE_TARGET}%</span>
+            <span className="mono">Meta: {capacity}%</span>
           </div>
           <div
             style={{
@@ -281,7 +284,7 @@ export default function ColabDetalhe({
               style={{
                 position: "absolute",
                 top: 0,
-                left: CHARGE_TARGET + "%",
+                left: capacity + "%",
                 width: 2,
                 height: "100%",
                 background: "#FF9B00BB",
@@ -295,7 +298,7 @@ export default function ColabDetalhe({
               <div className="modal-secao">Evolução mensal</div>
               <div style={{ position: "relative", height: 170, marginBottom: 20 }}>
                 <ChartCanvas
-                  deps={[meses]}
+                  deps={[meses, capacity]}
                   build={(ctx, canvas) => {
                     const h = canvas.offsetHeight || 170;
                     const g = ctx.createLinearGradient(0, 0, 0, h);
@@ -318,8 +321,8 @@ export default function ColabDetalhe({
                             tension: 0.35,
                           },
                           {
-                            label: `Meta ${CHARGE_TARGET}%`,
-                            data: meses.map(() => CHARGE_TARGET),
+                            label: `Meta ${capacity}%`,
+                            data: meses.map(() => capacity),
                             borderColor: "#FF9B00BB",
                             borderWidth: 1.5,
                             borderDash: [6, 4],

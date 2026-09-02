@@ -22,7 +22,13 @@ export const MES_ORD: Record<string, number> = Object.fromEntries(
 );
 
 // ── Timesheet ──────────────────────────────────────────────────────────
-export const CHARGE_TARGET = 75;
+/**
+ * Valores usados só enquanto a planilha "Painel ITP | Configurações" não
+ * responde — quem manda no capacity é ela, editada pela própria operação.
+ * Veja `lib/config-painel.ts`.
+ */
+export const CAPACITY_PADRAO = 75;
+export const ATENCAO_PADRAO = 50;
 
 export const TS_CAT_COLORS: Record<string, string> = {
   "1. Suporte": "#4F8EFF",

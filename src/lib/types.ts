@@ -45,6 +45,17 @@ export type CapacidadeRow = {
 };
 
 /**
+ * Parâmetros do painel editados na planilha "Painel ITP | Configurações"
+ * do Smartsheet, sem passar por alteração de código.
+ */
+export type ConfigPainel = {
+  /** Capacity: meta de chargeability, em % (linha laranja e cor verde). */
+  capacity: number;
+  /** Abaixo da meta e acima deste valor é amarelo; abaixo dele, vermelho. */
+  atencao: number;
+};
+
+/**
  * Uma ação do Plano Estratégico ITP, vinda do relatório
  * "Desenvolvimento de Programas e Ações" (uma versão por ano).
  */

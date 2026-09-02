@@ -1,4 +1,4 @@
-import { CHARGE_TARGET } from "./constants";
+import { configAtual } from "./config-painel";
 import type { TSRow } from "./types";
 
 /**
@@ -25,21 +25,24 @@ export function chargeability(faturaveis: number, preenchidas: number, disponive
   return base > 0 ? (faturaveis / base) * 100 : 0;
 }
 
-/** Cor conforme a distância da meta de chargeability. */
+/** Cor conforme a distância do capacity (os cortes vêm da planilha de config). */
 export function chargColor(v: number) {
-  return v >= CHARGE_TARGET ? "#00C8A0" : v >= 50 ? "#FF9B00" : "#FF5C6A";
+  const { capacity, atencao } = configAtual();
+  return v >= capacity ? "#00C8A0" : v >= atencao ? "#FF9B00" : "#FF5C6A";
 }
 
-/** Rótulo curto de situação do colaborador frente à meta. */
+/** Rótulo curto de situação do colaborador frente ao capacity. */
 export function chargLabel(v: number) {
-  return v >= CHARGE_TARGET ? "✅ Meta atingida" : v >= 50 ? "🟡 Atenção" : "🔴 Abaixo da meta";
+  const { capacity, atencao } = configAtual();
+  return v >= capacity ? "✅ Meta atingida" : v >= atencao ? "🟡 Atenção" : "🔴 Abaixo da meta";
 }
 
 /** Fundo suave na cor da situação. */
 export function chargBg(v: number) {
-  return v >= CHARGE_TARGET
+  const { capacity, atencao } = configAtual();
+  return v >= capacity
     ? "rgba(0,200,160,.10)"
-    : v >= 50
+    : v >= atencao
       ? "rgba(255,155,0,.10)"
       : "rgba(255,92,106,.10)";
 }

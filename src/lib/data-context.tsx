@@ -16,9 +16,17 @@ import {
   ORC_RECORDS_SEED,
   TIMESHEET_SEED,
 } from "@/data";
+import { aplicarConfig, CONFIG_PADRAO } from "./config-painel";
 import { MESES } from "./constants";
 import { ehFaturavel } from "./timesheet";
-import type { CapacidadeRow, OrcPessoal, OrcRecord, PlanoRow, TSRow } from "./types";
+import type {
+  CapacidadeRow,
+  ConfigPainel,
+  OrcPessoal,
+  OrcRecord,
+  PlanoRow,
+  TSRow,
+} from "./types";
 
 /** De onde vieram os lançamentos exibidos. */
 export type OrigemTimesheet = "smartsheet" | "embutido";
@@ -28,6 +36,7 @@ type PayloadApi = {
   timesheet: (Omit<TSRow, "m"> & { m?: string })[];
   capacidade: CapacidadeRow[];
   colaboradores: { c: string; time: string; st: string }[];
+  config?: ConfigPainel;
   atualizadoEm: string;
 };
 
@@ -39,6 +48,11 @@ type DataContextValue = {
   planoCarregando: boolean;
   /** Horas disponíveis por colaborador/mês, vindas do Smartsheet. */
   capacidade: CapacidadeRow[];
+  /**
+   * Capacity (meta de chargeability) e limite de atenção, em %, como estão na
+   * planilha "Painel ITP | Configurações". Até a primeira leitura, os padrões.
+   */
+  config: ConfigPainel;
   orcRecords: OrcRecord[];
   orcPessoal: OrcPessoal[];
   /** `false` até a primeira leitura no cliente (evita mismatch de hidratação). */
@@ -95,6 +109,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [plano, setPlano] = useState<PlanoRow[]>([]);
   const [planoCarregando, setPlanoCarregando] = useState(true);
   const [capacidade, setCapacidade] = useState<CapacidadeRow[]>([]);
+  const [config, setConfig] = useState<ConfigPainel>(CONFIG_PADRAO);
   const [hydrated, setHydrated] = useState(false);
   const [origem, setOrigem] = useState<OrigemTimesheet>("embutido");
   const [atualizadoEm, setAtualizadoEm] = useState<string | null>(null);
@@ -122,6 +137,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         enriquecer(p.timesheet.map((row) => ({ ...row, m: row.m || MESES[row.mo - 1] || "" }))),
       );
       if (p.capacidade?.length) setCapacidade(p.capacidade);
+      if (p.config) {
+        // As funções de cor e rótulo leem o valor do módulo; o estado é o que
+        // faz a tela redesenhar com o novo capacity.
+        aplicarConfig(p.config);
+        setConfig(p.config);
+      }
       setOrigem("smartsheet");
       setAtualizadoEm(p.atualizadoEm);
     } catch (e) {
@@ -186,6 +207,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     () => ({
       timesheet,
       capacidade,
+      config,
       plano,
       planoCarregando,
       orcRecords: ORC_RECORDS_SEED,
@@ -195,7 +217,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       atualizadoEm,
       carregando,
     }),
-    [timesheet, capacidade, plano, planoCarregando, hydrated, origem, atualizadoEm, carregando],
+    [
+      timesheet,
+      capacidade,
+      config,
+      plano,
+      planoCarregando,
+      hydrated,
+      origem,
+      atualizadoEm,
+      carregando,
+    ],
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
