@@ -22,7 +22,7 @@ export const MES_ORD: Record<string, number> = Object.fromEntries(
 );
 
 // ── Timesheet ──────────────────────────────────────────────────────────
-export const CHARGE_TARGET = 70;
+export const CHARGE_TARGET = 75;
 
 export const TS_CAT_COLORS: Record<string, string> = {
   "1. Suporte": "#4F8EFF",
