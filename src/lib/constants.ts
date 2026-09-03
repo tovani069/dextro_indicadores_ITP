@@ -1,11 +1,21 @@
 import type { SetorId } from "./types";
 
-/** Abas da lateral: bolinha colorida + rótulo, como no painel Premazon. */
-export const SECTIONS: { id: SetorId; label: string; dot: string }[] = [
-  { id: "plano", label: "Plano de Ação", dot: "#4F8EFF" },
+type Aba = { id: SetorId; label: string; dot: string };
+
+/**
+ * Abas da lateral em dois blocos, na mesma divisão do painel Premazon: em cima
+ * o que é medição, embaixo — depois de um separador — o que é controle, com o
+ * mapa e o plano fechando a lista.
+ */
+export const ABAS_INDICADORES: Aba[] = [
   { id: "indicadores", label: "Indicadores", dot: "#6C3FFF" },
+];
+
+export const ABAS_CONTROLES: Aba[] = [
   { id: "orcamento", label: "Orçamento Dir. Op.", dot: "#00C8A0" },
   { id: "timesheet", label: "Timesheet Operações", dot: "#FF9B00" },
+  { id: "mapa", label: "Mapa Estratégico", dot: "#20C0FF" },
+  { id: "plano", label: "Plano de Ação", dot: "#4F8EFF" },
 ];
 
 export const MESES = [

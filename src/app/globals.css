@@ -61,6 +61,8 @@ body{font-family:"IBM Plex Sans",sans-serif;background:var(--bg);color:var(--tex
 .nav-badge{font-size:10px;font-family:"IBM Plex Mono",monospace;padding:1px 6px;border-radius:10px;background:var(--bg4);color:var(--text3)}
 .nav-badge.risk{background:rgba(255,92,106,.2);color:#FF5C6A;animation:blink 1.4s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+/* Separa o bloco de indicadores do bloco de controles. */
+.nav-sep{height:1px;background:var(--border);margin:8px 10px}
 
 /* FILTERS */
 .filter-section{padding:12px 8px;margin-top:auto;border-top:1px solid var(--border)}
@@ -279,6 +281,77 @@ table.matriz td:first-child{text-align:left}
 table.matriz .matriz-nome{cursor:pointer;font-weight:500;color:var(--text2)}
 table.matriz .matriz-nome:hover{color:var(--text)}
 table.matriz tr.matriz-total td{border-top:1px solid var(--border2);border-bottom:none}
+
+/* ══════════════════════════════════════════════════════════
+   MAPA ESTRATÉGICO — mesmo desenho do dashboard da Premazon.
+   As cores das faixas vêm do dado (--mc / --ml), não do tema: o mapa é
+   material de apresentação e precisa ficar igual no claro e no escuro.
+   ══════════════════════════════════════════════════════════ */
+.mapa-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;
+  box-shadow:var(--shadow);overflow:hidden}
+.mapa-header{display:flex;align-items:center;gap:10px;padding:14px 16px;
+  border-bottom:1px solid var(--border);flex-wrap:wrap}
+.mapa-title{font-size:14px;font-weight:600;color:var(--text)}
+.mapa-dica{font-size:11px;color:var(--text3)}
+.mapa-periodo{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:13px;
+  font-weight:600;color:#257CBE;letter-spacing:1px}
+.mapa-body{padding:18px}
+.mapa-topo{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+.mapa-mvv{border-radius:10px;padding:20px 18px;display:flex;flex-direction:column;
+  align-items:center;text-align:center;color:#1F2430}
+.mapa-mvv-ico{color:#1F2430;margin-bottom:2px}
+.mapa-mvv-lbl{font-size:9px;font-weight:700;letter-spacing:1.4px;margin-bottom:10px}
+.mapa-mvv-txt{font-size:12.5px;line-height:1.55;margin:0}
+.mapa-persp{display:grid;grid-template-columns:270px 1fr;gap:14px;margin-bottom:14px}
+.mapa-persp:last-child{margin-bottom:0}
+.mapa-persp-lbl{background:var(--mc);border-radius:8px;display:flex;align-items:center;
+  gap:14px;padding:14px 16px}
+.mapa-persp-ico{width:46px;height:46px;flex-shrink:0;border:2px solid #fff;border-radius:6px;
+  display:grid;place-items:center;color:#fff}
+.mapa-persp-nome{font-size:15px;font-weight:800;line-height:1.2;color:#1F2430;
+  text-transform:uppercase;letter-spacing:.2px}
+.mapa-trilho{background:var(--ml);border-radius:8px;padding:10px;display:flex;gap:10px}
+.mapa-obj{flex:1 1 0;min-width:0;background:var(--mc);border-radius:6px;padding:12px 14px;
+  font-size:12px;line-height:1.45;color:#1F2430;display:flex;align-items:center;
+  justify-content:center;text-align:center;
+  transition:transform .15s ease,box-shadow .15s ease}
+.mapa-obj:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.16)}
+.mapa-add{flex:0 0 46px;border:2px dashed rgba(0,0,0,.2);background:transparent;
+  border-radius:6px;color:#1F2430;opacity:.5;cursor:pointer;display:grid;place-items:center;
+  font-family:inherit;transition:opacity .15s,background .15s}
+.mapa-add:hover{opacity:1;background:rgba(255,255,255,.5)}
+/* O card editável ganha um contorno interno ao passar o mouse — sem borda, que
+   deslocaria o texto. */
+.mapa-edit{cursor:pointer;position:relative}
+.mapa-edit::after{content:"";position:absolute;inset:0;border-radius:inherit;
+  box-shadow:inset 0 0 0 0 rgba(255,255,255,0);transition:box-shadow .15s}
+.mapa-edit:hover::after{box-shadow:inset 0 0 0 2px rgba(255,255,255,.85)}
+
+/* Editor do card */
+.mp-card{width:min(94vw,540px);background:var(--bg2);border:1px solid var(--border2);
+  border-radius:18px;box-shadow:var(--shadow-lg);padding:24px;
+  font-family:"IBM Plex Sans",sans-serif}
+.mp-ctx{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;
+  color:var(--text3);text-transform:uppercase;letter-spacing:.8px}
+.mp-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.mp-title{font-size:16px;font-weight:600;color:var(--text);margin-top:8px;letter-spacing:-.2px}
+.mp-sub{font-size:12px;color:var(--text3);margin-top:4px;line-height:1.5}
+.mp-input{width:100%;margin-top:16px;padding:12px 14px;border:1.5px solid var(--border2);
+  border-radius:10px;background:var(--bg3);color:var(--text);font-size:14px;line-height:1.5;
+  font-family:inherit;outline:none;resize:vertical;min-height:96px;
+  transition:border-color .15s,box-shadow .15s}
+.mp-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-lt)}
+.mp-row{display:flex;gap:10px;margin-top:18px}
+.mp-btn{flex:1;padding:11px;border-radius:10px;font-size:13.5px;font-weight:600;
+  cursor:pointer;font-family:inherit;border:1px solid var(--border2);transition:all .15s}
+.mp-btn-cancel{background:var(--bg3);color:var(--text2)}
+.mp-btn-cancel:hover{background:var(--bg4)}
+.mp-btn-ok{background:var(--accent);color:var(--bg2);border-color:var(--accent)}
+[data-theme="light"] .mp-btn-ok{color:#fff}
+.mp-btn-ok:hover{filter:brightness(1.08)}
+.mp-btn-del{flex:0 0 auto;padding:11px 14px;background:var(--bg3);color:#FF5C6A}
+.mp-btn-del:hover{background:rgba(255,92,106,.12);border-color:#FF5C6A}
+.mp-btn-del.mp-confirma{background:#FF5C6A;color:#fff;border-color:#FF5C6A}
 
 /* ══════════════════════════════════════════════════════════
    DETALHE DO COLABORADOR — card ao centro, fundo desfocado

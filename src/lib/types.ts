@@ -126,4 +126,4 @@ export type Indicador = {
   meta_dir?: "max" | "min";
 };
 
-export type SetorId = "plano" | "indicadores" | "orcamento" | "timesheet";
+export type SetorId = "plano" | "indicadores" | "orcamento" | "timesheet" | "mapa";
