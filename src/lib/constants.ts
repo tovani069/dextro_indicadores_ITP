@@ -1,10 +1,11 @@
 import type { SetorId } from "./types";
 
-export const SECTIONS: { id: SetorId; label: string; icon: string; dot: string }[] = [
-  { id: "plano", label: "Plano de Ação", icon: "📋", dot: "#4F8EFF" },
-  { id: "indicadores", label: "Indicadores", icon: "📊", dot: "#6C3FFF" },
-  { id: "orcamento", label: "Orçamento Dir. Op.", icon: "💰", dot: "#00C8A0" },
-  { id: "timesheet", label: "Timesheet Operações", icon: "⏱", dot: "#FF9B00" },
+/** Abas da lateral: bolinha colorida + rótulo, como no painel Premazon. */
+export const SECTIONS: { id: SetorId; label: string; dot: string }[] = [
+  { id: "plano", label: "Plano de Ação", dot: "#4F8EFF" },
+  { id: "indicadores", label: "Indicadores", dot: "#6C3FFF" },
+  { id: "orcamento", label: "Orçamento Dir. Op.", dot: "#00C8A0" },
+  { id: "timesheet", label: "Timesheet Operações", dot: "#FF9B00" },
 ];
 
 export const MESES = [

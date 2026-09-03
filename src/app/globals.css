@@ -51,26 +51,16 @@ body{font-family:"IBM Plex Sans",sans-serif;background:var(--bg);color:var(--tex
 /* SIDEBAR */
 .sidebar{width:224px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:76px;height:calc(100vh - 76px);overflow-y:auto;transition:width .25s}
 .sidebar.collapsed{width:0;overflow:hidden}
-.sidebar-nav{padding:12px 8px 0}
-.nav-btn{width:100%;display:flex;align-items:center;gap:8px;padding:9px 10px 9px 13px;border:none;background:transparent;color:var(--text2);cursor:pointer;border-radius:8px;font-size:13px;font-family:"IBM Plex Sans",sans-serif;text-align:left;position:relative;margin-bottom:2px;overflow:hidden;
-  transition:background .28s cubic-bezier(.22,1,.36,1),color .28s cubic-bezier(.22,1,.36,1)}
-.nav-btn:hover{background:var(--bg3)}
-/* O indicador da aba ativa cresce no lugar de aparecer de uma vez — e, por ser
-   um pseudo-elemento, não desloca o texto como uma borda deslocaria. */
-.nav-btn::before{
-  content:"";position:absolute;left:0;top:50%;
-  width:3px;height:68%;border-radius:0 3px 3px 0;background:var(--accent);
-  transform:translateY(-50%) scaleY(0);transform-origin:center;
-  transition:transform .32s cubic-bezier(.22,1,.36,1);
-}
-.nav-btn.active::before{transform:translateY(-50%) scaleY(1)}
-.nav-btn.active{background:var(--accent-lt);color:var(--text)}
+.sidebar-nav{padding:12px 8px}
+/* Mesmas abas do painel Premazon: bolinha, rótulo e uma borda à esquerda na ativa. */
+.nav-btn{display:flex;align-items:center;gap:9px;width:100%;padding:9px 10px;border:none;border-left:3px solid transparent;background:none;color:var(--text2);cursor:pointer;border-radius:8px;font-size:13px;font-family:"IBM Plex Sans",sans-serif;text-align:left;white-space:nowrap;transition:all .15s}
+.nav-btn:hover{background:var(--bg3);color:var(--text)}
+.nav-btn.active{background:var(--accent-lt);color:var(--accent);border-left-color:var(--accent);font-weight:500}
 .nav-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .nav-label{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nav-badge{font-size:10px;font-family:"IBM Plex Mono",monospace;padding:1px 6px;border-radius:10px;background:var(--bg4);color:var(--text3)}
 .nav-badge.risk{background:rgba(255,92,106,.2);color:#FF5C6A;animation:blink 1.4s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
-.nav-sep{height:1px;background:var(--border);margin:8px 8px}
 
 /* FILTERS */
 .filter-section{padding:12px 8px;margin-top:auto;border-top:1px solid var(--border)}
