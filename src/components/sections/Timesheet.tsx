@@ -73,9 +73,23 @@ type Props = {
 };
 
 export default function Timesheet({ filtrosIniciais }: Props = {}) {
-  const { timesheet, capacidade, config } = useData();
+  const { timesheet, capacidade, colaboradores, config } = useData();
   // Capacity vindo da planilha de configurações; a operação edita por lá.
   const capacity = config.capacity;
+
+  /**
+   * Quem está ativo no cadastro e não tem uma linha sequer em toda a base —
+   * não no recorte dos filtros, na base inteira. É o sintoma de planilha fora
+   * do relatório de lançamentos, que antes sumia a pessoa do painel em silêncio.
+   */
+  const semLancamentos = useMemo(() => {
+    if (!colaboradores.length || !timesheet.length) return [];
+    const comHoras = new Set(timesheet.map((r) => r.c));
+    return colaboradores
+      .filter((c) => c.st === "Ativo" && !comHoras.has(c.c))
+      .map((c) => c.c)
+      .sort();
+  }, [colaboradores, timesheet]);
   const [f, setF] = useState<Filtros>({ ...FILTROS_VAZIOS, ...filtrosIniciais });
   const [rankCol, setRankCol] = useState<RankCol>("chargeability");
   const [rankDir, setRankDir] = useState(-1);
@@ -539,6 +553,39 @@ export default function Timesheet({ filtrosIniciais }: Props = {}) {
         </button>
         <FiltrosAtivos pills={pills} onRemove={removePill} />
       </div>
+
+      {/* Cadastrado, ativo e sem uma hora sequer na base: quase sempre é a
+          planilha da pessoa que ficou de fora do relatório de lançamentos. */}
+      {semLancamentos.length > 0 && (
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            alignItems: "flex-start",
+            marginBottom: 16,
+            padding: "10px 14px",
+            borderRadius: 10,
+            background: "rgba(255,155,0,.10)",
+            border: "1px solid rgba(255,155,0,.35)",
+            fontSize: 12,
+            color: "var(--text2)",
+            lineHeight: 1.55,
+          }}
+        >
+          <span style={{ flexShrink: 0 }}>⚠️</span>
+          <span>
+            <b style={{ color: "var(--text)" }}>
+              {semLancamentos.length === 1
+                ? "1 colaborador ativo sem nenhum lançamento na base"
+                : `${semLancamentos.length} colaboradores ativos sem nenhum lançamento na base`}
+              :
+            </b>{" "}
+            {semLancamentos.join(", ")}. Confira se a planilha dessa pessoa está no
+            relatório <i>Base todos os lançamentos</i> — ele lista as planilhas uma a uma,
+            então uma planilha nova só entra no painel depois de ser incluída lá.
+          </span>
+        </div>
+      )}
 
       {/* KPIs — os sete cabem em uma linha só; quebram apenas em telas estreitas */}
       <div

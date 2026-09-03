@@ -48,6 +48,8 @@ type DataContextValue = {
   planoCarregando: boolean;
   /** Horas disponíveis por colaborador/mês, vindas do Smartsheet. */
   capacidade: CapacidadeRow[];
+  /** Cadastro de Colaboradores: nome, time e status de quem está registrado. */
+  colaboradores: { c: string; time: string; st: string }[];
   /**
    * Capacity (meta de chargeability) e limite de atenção, em %, como estão na
    * planilha "Painel ITP | Configurações". Até a primeira leitura, os padrões.
@@ -111,6 +113,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [planoCarregando, setPlanoCarregando] = useState(true);
   const [capacidade, setCapacidade] = useState<CapacidadeRow[]>([]);
   const [config, setConfig] = useState<ConfigPainel>(CONFIG_PADRAO);
+  const [colaboradores, setColaboradores] = useState<
+    { c: string; time: string; st: string }[]
+  >([]);
   const [hydrated, setHydrated] = useState(false);
   const [origem, setOrigem] = useState<OrigemTimesheet>("embutido");
   const [atualizadoEm, setAtualizadoEm] = useState<string | null>(null);
@@ -144,6 +149,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         ),
       );
       if (p.capacidade?.length) setCapacidade(p.capacidade);
+      if (p.colaboradores?.length) {
+        setColaboradores(p.colaboradores.map(({ c, time, st }) => ({ c, time, st })));
+      }
       if (p.config) {
         // As funções de cor e rótulo leem o valor do módulo; o estado é o que
         // faz a tela redesenhar com o novo capacity.
@@ -214,6 +222,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     () => ({
       timesheet,
       capacidade,
+      colaboradores,
       config,
       plano,
       planoCarregando,
@@ -227,6 +236,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     [
       timesheet,
       capacidade,
+      colaboradores,
       config,
       plano,
       planoCarregando,

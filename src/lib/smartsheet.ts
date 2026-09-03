@@ -289,9 +289,41 @@ async function lerConfig(revalidate: number): Promise<ConfigPainel> {
   }
 }
 
+/**
+ * Acha o colaborador de uma planilha de lançamentos.
+ *
+ * O caminho normal é o nome exato da planilha, como está no cadastro. Só que
+ * planilha renomeada e ano digitado errado no cadastro acontecem — e antes
+ * disso derrubava a pessoa inteira do painel, calada. Então há duas reservas:
+ * o nome tirado do título da planilha ("Time Sheet Marcio Almeida 2025" →
+ * "Marcio Almeida") e, para quem nem está no cadastro, a planilha de times.
+ */
+function resolvedorDeColaborador(
+  porPlanilha: Map<string, ColaboradorInfo>,
+  timesPorNome: Map<string, string>,
+) {
+  const porNome = new Map<string, ColaboradorInfo>();
+  porPlanilha.forEach((info, planilha) => {
+    porNome.set(chaveNome(info.c), info);
+    const doTitulo = chaveNome(nomeDaPlanilha(planilha));
+    if (doTitulo && !porNome.has(doTitulo)) porNome.set(doTitulo, info);
+  });
+
+  return (planilha: string): ColaboradorInfo | undefined => {
+    const exato = porPlanilha.get(planilha);
+    if (exato) return exato;
+    const nome = nomeDaPlanilha(planilha);
+    const chave = chaveNome(nome);
+    const porTitulo = porNome.get(chave);
+    if (porTitulo) return porTitulo;
+    const time = timesPorNome.get(chave);
+    return time ? { c: nome, time, st: "", timeDaPlanilha: true } : undefined;
+  };
+}
+
 /** O relatório é grande (dezenas de milhares de linhas): lido em páginas. */
 async function lerLancamentos(
-  porPlanilha: Map<string, ColaboradorInfo>,
+  colaboradorDa: (planilha: string) => ColaboradorInfo | undefined,
   revalidate: number,
 ): Promise<Omit<TSRow, "m">[]> {
   const TAMANHO = 10000;
@@ -323,7 +355,7 @@ async function lerLancamentos(
       if (!data || !horas) return;
 
       const planilha = texto(r.cells[idx["Nome da planilha"]]);
-      const info = porPlanilha.get(planilha);
+      const info = colaboradorDa(planilha);
       const cliente = texto(r.cells[idx["Cliente"]]);
       const categoria = texto(r.cells[idx["Categoria"]]);
       const [ano, mes] = data.split("-").map(Number);
@@ -369,9 +401,10 @@ export async function carregarTimesheet(revalidate = 1800): Promise<PayloadTimes
     info.timeDaPlanilha = true;
   });
 
+  const colaboradorDa = resolvedorDeColaborador(porPlanilha, timesPorNome);
   const [timesPorPasta, timesheet, capacidade, config] = await Promise.all([
     lerTimesPorPasta(revalidate).catch(() => new Map<string, string>()),
-    lerLancamentos(porPlanilha, revalidate),
+    lerLancamentos(colaboradorDa, revalidate),
     lerCapacidade(revalidate),
     lerConfig(revalidate),
   ]);
