@@ -15,13 +15,26 @@ import {
 import { indFmt, indGetStatus, indStatusInfo } from "@/lib/indicadores";
 import type { Indicador } from "@/lib/types";
 
-export default function Indicadores() {
+type Props = {
+  /** Grupo escolhido na aba lateral; vazio é a Visão Geral, com todos. */
+  grupo?: string;
+};
+
+export default function Indicadores({ grupo = "" }: Props = {}) {
   const [fGrupo, setFGrupo] = useState("");
   const [fNivel, setFNivel] = useState("");
   const [fStatus, setFStatus] = useState("");
   const [search, setSearch] = useState("");
 
-  const all = INDICADORES;
+  /**
+   * Com um grupo na aba, a seção inteira — KPIs e resumo inclusive — passa a
+   * falar só dele; a lista suspensa de grupos sai, porque quem escolhe agora é
+   * a lateral. A troca de aba remonta o bloco, então não há estado a sincronizar.
+   */
+  const all = useMemo(
+    () => (grupo ? INDICADORES.filter((i) => i.grupo === grupo) : INDICADORES),
+    [grupo],
+  );
   const ativos = all.filter((i) => i.status_ind === "Ativo").length;
   const comDados = all.filter((i) => i.valores.some((v) => v !== null)).length;
   const noAlvo = all.filter((i) => indGetStatus(i) === "ok").length;
@@ -64,7 +77,7 @@ export default function Indicadores() {
       >
         <div>
           <div className="section-title" style={{ margin: 0, fontSize: 15 }}>
-            📊 Indicadores · Diretoria de Operações
+            📊 Indicadores · {grupo || "Diretoria de Operações"}
           </div>
           <div
             className="mono"
@@ -337,17 +350,19 @@ export default function Indicadores() {
           borderRadius: 10,
         }}
       >
-        <select
-          className="filter-sel"
-          style={{ width: "auto", margin: 0 }}
-          value={fGrupo}
-          onChange={(e) => setFGrupo(e.target.value)}
-        >
-          <option value="">Todos os Grupos</option>
-          {IND_GRUPOS.map((g) => (
-            <option key={g}>{g}</option>
-          ))}
-        </select>
+        {!grupo && (
+          <select
+            className="filter-sel"
+            style={{ width: "auto", margin: 0 }}
+            value={fGrupo}
+            onChange={(e) => setFGrupo(e.target.value)}
+          >
+            <option value="">Todos os Grupos</option>
+            {IND_GRUPOS.map((g) => (
+              <option key={g}>{g}</option>
+            ))}
+          </select>
+        )}
         <select
           className="filter-sel"
           style={{ width: "auto", margin: 0 }}

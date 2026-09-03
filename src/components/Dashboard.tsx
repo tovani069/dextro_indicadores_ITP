@@ -39,7 +39,9 @@ export default function Dashboard() {
           {/* A key remonta o bloco a cada troca de aba, disparando a animação de entrada. */}
           <div key={setor} className="anim-sobe">
             {setor === "plano" && <PlanoAcao />}
-            {setor === "indicadores" && <Indicadores />}
+            {(setor === "indicadores" || setor.startsWith("grupo:")) && (
+              <Indicadores grupo={setor.startsWith("grupo:") ? setor.slice(6) : ""} />
+            )}
             {setor === "orcamento" && <Orcamento />}
             {setor === "timesheet" && <Timesheet />}
             {setor === "mapa" && <MapaEstrategico />}

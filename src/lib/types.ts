@@ -126,4 +126,14 @@ export type Indicador = {
   meta_dir?: "max" | "min";
 };
 
-export type SetorId = "plano" | "indicadores" | "orcamento" | "timesheet" | "mapa";
+/**
+ * Aba aberta na lateral. `grupo:<nome>` é a Visão Geral dos indicadores
+ * recortada por um grupo — o nome vem de `IND_GRUPOS`.
+ */
+export type SetorId =
+  | "plano"
+  | "indicadores"
+  | "orcamento"
+  | "timesheet"
+  | "mapa"
+  | `grupo:${string}`;

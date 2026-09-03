@@ -4,12 +4,10 @@ type Aba = { id: SetorId; label: string; dot: string };
 
 /**
  * Abas da lateral em dois blocos, na mesma divisão do painel Premazon: em cima
- * o que é medição, embaixo — depois de um separador — o que é controle, com o
- * mapa e o plano fechando a lista.
+ * os indicadores — a Visão Geral e, abaixo dela, um grupo por aba —, embaixo,
+ * depois de um separador, os controles, com o mapa e o plano fechando a lista.
  */
-export const ABAS_INDICADORES: Aba[] = [
-  { id: "indicadores", label: "Indicadores", dot: "#6C3FFF" },
-];
+export const ABA_VISAO: Aba = { id: "indicadores", label: "Visão Geral", dot: "#6C3FFF" };
 
 export const ABAS_CONTROLES: Aba[] = [
   { id: "orcamento", label: "Orçamento Dir. Op.", dot: "#00C8A0" },

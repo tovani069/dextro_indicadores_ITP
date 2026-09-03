@@ -1,6 +1,7 @@
 "use client";
 
-import { ABAS_CONTROLES, ABAS_INDICADORES } from "@/lib/constants";
+import { INDICADORES } from "@/data";
+import { ABA_VISAO, ABAS_CONTROLES, IND_GRUPOS, IND_GRUPO_COLORS } from "@/lib/constants";
 import type { SetorId } from "@/lib/types";
 
 type Props = {
@@ -13,14 +14,16 @@ type Props = {
 
 export default function Sidebar({ setor, collapsed, onSelect, onCompartilhar }: Props) {
   /** O ícone de link só existe na aba do Timesheet, que tem endereço próprio. */
-  const aba = (a: { id: SetorId; label: string; dot: string }) => (
+  const aba = (a: { id: SetorId; label: string; dot: string }, contagem?: number) => (
     <button
       key={a.id}
       className={"nav-btn" + (setor === a.id ? " active" : "")}
       onClick={() => onSelect(a.id)}
+      title={a.label}
     >
       <div className="nav-dot" style={{ background: a.dot }} />
       <span className="nav-label">{a.label}</span>
+      {contagem !== undefined && <span className="nav-badge">{contagem}</span>}
       {a.id === "timesheet" && (
         <span
           className="nav-link"
@@ -51,9 +54,19 @@ export default function Sidebar({ setor, collapsed, onSelect, onCompartilhar }: 
   return (
     <div className={"sidebar" + (collapsed ? " collapsed" : "")}>
       <div className="sidebar-nav">
-        {ABAS_INDICADORES.map(aba)}
+        {aba(ABA_VISAO, INDICADORES.length)}
+        {IND_GRUPOS.map((g) => {
+          const total = INDICADORES.filter((i) => i.grupo === g).length;
+          if (!total) return null;
+          return aba(
+            { id: `grupo:${g}`, label: g, dot: IND_GRUPO_COLORS[g] || "#6C3FFF" },
+            total,
+          );
+        })}
+
         <div className="nav-sep" />
-        {ABAS_CONTROLES.map(aba)}
+
+        {ABAS_CONTROLES.map((a) => aba(a))}
       </div>
     </div>
   );
