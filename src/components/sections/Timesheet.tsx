@@ -144,10 +144,6 @@ export default function Timesheet({ filtrosIniciais }: Props = {}) {
     ...new Set([...valores, ...selecionados]),
   ];
 
-  const allColabs = useMemo(
-    () => comSelecionados([...new Set(recorte("colabs").map((r) => r.c))], f.colabs).sort(),
-    [recorte, f.colabs],
-  );
   const allAnos = useMemo(
     () =>
       comSelecionados(
@@ -212,11 +208,15 @@ export default function Timesheet({ filtrosIniciais }: Props = {}) {
   /** Time e status de cada colaborador, para filtrar a capacidade. */
   const infoColab = useMemo(() => {
     const m = new Map<string, { time?: string; st?: string }>();
+    // O cadastro entra primeiro porque cobre também quem ainda não lançou hora
+    // nenhuma; sem ele, a capacidade dessa pessoa ficaria fora dos filtros de
+    // time e de status.
+    colaboradores.forEach((c) => m.set(c.c, { time: c.time, st: c.st }));
     timesheet.forEach((r) => {
       if (!m.has(r.c)) m.set(r.c, { time: r.time, st: r.st });
     });
     return m;
-  }, [timesheet]);
+  }, [colaboradores, timesheet]);
 
   // A capacidade só responde aos filtros de pessoa e de tempo — cliente e
   // categoria são atributos do lançamento, não da disponibilidade do colaborador.
@@ -241,6 +241,25 @@ export default function Timesheet({ filtrosIniciais }: Props = {}) {
     capacidadeFiltrada.forEach((c) => m.set(c.c, (m.get(c.c) ?? 0) + c.horas));
     return m;
   }, [capacidadeFiltrada]);
+
+  /**
+   * A lista do filtro de Colaborador soma quem lançou horas e quem só tem
+   * capacidade no recorte — é assim que alguém recém-chegado, ainda sem
+   * lançamento, pode ser encontrado na busca em vez de simplesmente não existir.
+   */
+  const allColabs = useMemo(
+    () =>
+      comSelecionados(
+        [
+          ...new Set([
+            ...recorte("colabs").map((r) => r.c),
+            ...capacidadeFiltrada.filter((c) => c.horas > 0).map((c) => c.c),
+          ]),
+        ],
+        f.colabs,
+      ).sort(),
+    [recorte, capacidadeFiltrada, f.colabs],
+  );
 
   const capPorColabMes = useMemo(() => {
     const m = new Map<string, number>();
@@ -310,7 +329,27 @@ export default function Timesheet({ filtrosIniciais }: Props = {}) {
   const pctPreenchimento = horasDisponiveis > 0 ? (horasPreenchidas / horasDisponiveis) * 100 : 0;
   const pctChargeability = chargeability(horasFaturaveis, horasPreenchidas, horasDisponiveis);
 
-  const colabs = useMemo(() => [...new Set(rows.map((r) => r.c))].sort(), [rows]);
+  /**
+   * Quem aparece nos visuais por pessoa. Além de quem lançou horas, entra quem
+   * só tem capacidade no recorte: as horas disponíveis dessa pessoa já pesam no
+   * denominador dos KPIs, então deixá-la fora da lista era o que fazia alguém
+   * "entrar nas horas e sumir da tela" — aparece com 0h e 0%, que é o retrato
+   * fiel de quem tem capacidade e não preencheu.
+   *
+   * Com filtro de cliente, categoria ou tipo, a lista volta a ser só de quem
+   * lançou: a capacidade não responde a esses filtros, e misturar as duas
+   * coisas encheria o gráfico de gente que não tocou naquele cliente.
+   */
+  const recorteComparavel = f.clientes.length === 0 && f.cats.length === 0 && f.tipo === "todos";
+  const colabs = useMemo(() => {
+    const nomes = new Set(rows.map((r) => r.c));
+    if (recorteComparavel) {
+      capacidadeFiltrada.forEach((c) => {
+        if (c.horas > 0) nomes.add(c.c);
+      });
+    }
+    return [...nomes].sort();
+  }, [rows, capacidadeFiltrada, recorteComparavel]);
   const colabChargs = colabs.map((c) => {
     const cr = rows.filter((r) => r.c === c);
     const t = cr.reduce((a, r) => a + r.h, 0);
