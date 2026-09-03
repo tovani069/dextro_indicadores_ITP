@@ -41,7 +41,13 @@ type Celula = { value?: unknown; displayValue?: string; virtualColumnId?: number
 type Linha = { cells: Celula[] };
 type Coluna = { title: string; id?: number; virtualId?: number };
 
-export type ColaboradorInfo = { c: string; time: string; st: string };
+export type ColaboradorInfo = {
+  c: string;
+  time: string;
+  st: string;
+  /** O time veio da coluna `Time` do cadastro, e não do Setor ou da pasta. */
+  timeDoCadastro?: boolean;
+};
 
 type Pasta = {
   name: string;
@@ -140,21 +146,33 @@ function nomeDaPlanilha(titulo: string) {
     .trim();
 }
 
+/**
+ * Cadastro de Colaboradores: nome oficial, time e status.
+ *
+ * O `Setor` do cadastro é a estrutura antiga, de dois times (MDR e Suporte).
+ * Quando a planilha ganha uma coluna `Time` — a divisão atual da operação,
+ * com Endpoint, Exposure, Identity, MDR e Network —, é ela que manda, célula
+ * a célula: linha preenchida usa o time do cadastro, linha em branco continua
+ * caindo na pasta da planilha e, por fim, no Setor.
+ */
 async function lerColaboradores(revalidate: number) {
   const sheet = await smartsheet<{ columns: Coluna[]; rows: Linha[] }>(
     `/sheets/${FONTES.colaboradores}`,
     revalidate,
   );
   const idx = indicePorTitulo(sheet.columns);
+  const iTime = primeiraColuna(idx, "Time", "Equipe");
   const porPlanilha = new Map<string, ColaboradorInfo>();
   sheet.rows.forEach((r) => {
     const planilha = texto(r.cells[idx["Nome da Planilha"]]);
     const nome = texto(r.cells[idx["Nome"]]);
     if (!planilha || !nome) return;
+    const time = iTime === undefined ? "" : texto(r.cells[iTime]);
     porPlanilha.set(planilha, {
       c: nome,
-      time: texto(r.cells[idx["Setor"]]),
+      time: time || texto(r.cells[idx["Setor"]]),
       st: texto(r.cells[idx["Status"]]),
+      ...(time ? { timeDoCadastro: true } : {}),
     });
   });
   return porPlanilha;
@@ -303,10 +321,11 @@ export async function carregarTimesheet(revalidate = 1800): Promise<PayloadTimes
     lerConfig(revalidate),
   ]);
 
-  // A pasta manda no time; o Setor do cadastro fica como reserva. Quando há
+  // Sem time no cadastro, a pasta manda, e o Setor fica como reserva. Quando há
   // planilha de mais de um ano, vale a mais recente.
   const anoDoTime = new Map<string, number>();
   porPlanilha.forEach((info, planilha) => {
+    if (info.timeDoCadastro) return;
     const time = timesPorPasta.get(planilha);
     if (!time) return;
     const ano = anoDaPlanilha(planilha);
