@@ -63,6 +63,7 @@ de ambiente na Vercel) nunca chega ao navegador. A leitura é cacheada por 30 mi
 | Planilha *Cadastro de Colaboradores* | nome oficial + Time (Setor) + Status |
 | Planilha *Horas disponíveis* | capacidade por colaborador/mês, base do % Preenchimento |
 | Planilha *Painel ITP \| Configurações* | capacity (meta de chargeability) e limite de atenção |
+| Planilha *Painel ITP \| Times* | time atual de cada colaborador (Endpoint, Exposure, Identity, MDR, Network) |
 
 Se a leitura falhar, o dashboard exibe a base embutida em `src/data/timesheet.json` e o card
 "Horas Disponíveis" passa a mostrar a capacidade estimada (dias úteis × 8h).
@@ -88,7 +89,7 @@ As demais seções — **Plano de Ação**, **Indicadores** e **Orçamento** —
 | `orcamento-records.json` | linhas de despesa |
 | `orcamento-pessoal.json` | quadro de pessoal |
 | `indicadores.json` | indicadores |
-| `colaboradores.json` | Time/Status de reserva, usado quando o Smartsheet não responde |
+| `colaboradores.json` | Time/Status de reserva, usado quando o Smartsheet não responde — quem manda é a planilha *Painel ITP \| Times* |
 
 ## Deploy (Vercel)
 

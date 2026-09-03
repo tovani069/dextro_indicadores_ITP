@@ -35,7 +35,7 @@ export type OrigemTimesheet = "smartsheet" | "embutido";
 type PayloadApi = {
   timesheet: (Omit<TSRow, "m"> & { m?: string })[];
   capacidade: CapacidadeRow[];
-  colaboradores: { c: string; time: string; st: string; timeDoCadastro?: boolean }[];
+  colaboradores: { c: string; time: string; st: string; timeDaPlanilha?: boolean }[];
   config?: ConfigPainel;
   atualizadoEm: string;
 };
@@ -78,21 +78,20 @@ const INFO_COLAB = new Map(COLABORADORES.map((i) => [i.c, i]));
  * Normaliza os lançamentos de qualquer origem: aplica a regra de faturável
  * (pela categoria) e resolve Time e Status do colaborador.
  *
- * O Time vem de `data/colaboradores.json` **enquanto o cadastro no Smartsheet
- * não disser o time daquela pessoa**: a operação foi reorganizada em cinco
- * times (MDR, Endpoint, Exposure, Identity e Network) e o `Setor` do cadastro
- * ainda registra a estrutura antiga de dois. Quem já estiver com a coluna
- * `Time` preenchida no cadastro vem de lá — nome em `comTimeDoCadastro` — e o
- * arquivo deixa de valer para essa pessoa; quando todo mundo estiver
- * preenchido, o arquivo pode ser esvaziado.
+ * Quem está na planilha "Painel ITP | Times" do Smartsheet vem de lá — nome em
+ * `comTimeDaPlanilha` —, que é onde a operação mantém a divisão atual em cinco
+ * times (MDR, Endpoint, Exposure, Identity e Network). `data/colaboradores.json`
+ * ficou como reserva de quando o Smartsheet não responde e o painel cai na base
+ * embutida; para os demais, vale o `Setor` do cadastro, que ainda registra a
+ * estrutura antiga de dois times.
  *
  * O Status continua vindo do cadastro, que é a fonte viva de quem está ativo.
  */
-function enriquecer(rows: TSRow[], comTimeDoCadastro?: Set<string>): TSRow[] {
+function enriquecer(rows: TSRow[], comTimeDaPlanilha?: Set<string>): TSRow[] {
   return rows.map((r) => {
     const info = INFO_COLAB.get(r.c);
     const b = ehFaturavel(r.cat);
-    const time = comTimeDoCadastro?.has(r.c) ? r.time || info?.time : info?.time || r.time;
+    const time = comTimeDaPlanilha?.has(r.c) ? r.time || info?.time : info?.time || r.time;
     const st = r.st || info?.st;
     if (b === r.b && time === r.time && st === r.st) return r;
     return { ...r, b, ...(time ? { time } : {}), ...(st ? { st } : {}) };
@@ -135,13 +134,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       if (!r.ok) throw new Error("HTTP " + r.status);
       const p: PayloadApi = await r.json();
       if (!p?.timesheet?.length) return;
-      const comTimeDoCadastro = new Set(
-        (p.colaboradores ?? []).filter((c) => c.timeDoCadastro).map((c) => c.c),
+      const comTimeDaPlanilha = new Set(
+        (p.colaboradores ?? []).filter((c) => c.timeDaPlanilha).map((c) => c.c),
       );
       setTimesheet(
         enriquecer(
           p.timesheet.map((row) => ({ ...row, m: row.m || MESES[row.mo - 1] || "" })),
-          comTimeDoCadastro,
+          comTimeDaPlanilha,
         ),
       );
       if (p.capacidade?.length) setCapacidade(p.capacidade);

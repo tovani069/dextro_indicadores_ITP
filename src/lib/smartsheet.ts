@@ -25,6 +25,15 @@ export const FONTES = {
    */
   config: process.env.SMARTSHEET_SHEET_CONFIG ?? "882692785655684",
   /**
+   * Planilha "Painel ITP | Times" — nome do colaborador → time atual.
+   *
+   * O `Setor` do Cadastro de Colaboradores é a estrutura antiga, de dois times
+   * (MDR e Suporte). A divisão de hoje, com Endpoint, Exposure, Identity, MDR e
+   * Network, é mantida aqui: quem está listado aparece neste time, quem não
+   * está continua caindo na pasta da planilha e, por fim, no Setor.
+   */
+  times: process.env.SMARTSHEET_SHEET_TIMES ?? "8867978727608196",
+  /**
    * Relatórios "Desenvolvimento de Programas e Ações" — o Plano Estratégico
    * ITP, uma versão por ciclo anual, consolidando as planilhas por perspectiva.
    */
@@ -45,8 +54,11 @@ export type ColaboradorInfo = {
   c: string;
   time: string;
   st: string;
-  /** O time veio da coluna `Time` do cadastro, e não do Setor ou da pasta. */
-  timeDoCadastro?: boolean;
+  /**
+   * O time veio de uma fonte da divisão atual — a planilha "Painel ITP | Times"
+   * ou uma coluna `Time` no cadastro —, e não do Setor antigo nem da pasta.
+   */
+  timeDaPlanilha?: boolean;
 };
 
 type Pasta = {
@@ -172,7 +184,7 @@ async function lerColaboradores(revalidate: number) {
       c: nome,
       time: time || texto(r.cells[idx["Setor"]]),
       st: texto(r.cells[idx["Status"]]),
-      ...(time ? { timeDoCadastro: true } : {}),
+      ...(time ? { timeDaPlanilha: true } : {}),
     });
   });
   return porPlanilha;
@@ -195,6 +207,38 @@ async function lerCapacidade(revalidate: number): Promise<CapacidadeRow[]> {
     out.push({ c, a: ano, mo: mes, horas });
   });
   return out;
+}
+
+/** Nome comparável: sem acento, caixa ou espaço sobrando ("Sávio  Alves" → "savio alves"). */
+const chaveNome = (s: string) =>
+  s.normalize("NFD").toLowerCase().replace(/[^a-z ]/g, "").replace(/\s+/g, " ").trim();
+
+/**
+ * Planilha de times: nome → time atual. Qualquer falha (planilha renomeada,
+ * coluna trocada) devolve um mapa vazio, e cada colaborador segue com o time
+ * que já vinha do cadastro ou da pasta.
+ */
+async function lerTimes(revalidate: number): Promise<Map<string, string>> {
+  try {
+    const sheet = await smartsheet<{ columns: Coluna[]; rows: Linha[] }>(
+      `/sheets/${FONTES.times}`,
+      revalidate,
+    );
+    const idx = indicePorTitulo(sheet.columns);
+    const iNome = primeiraColuna(idx, "Nome", "Colaborador");
+    const iTime = primeiraColuna(idx, "Time", "Equipe");
+    if (iNome === undefined || iTime === undefined) return new Map();
+    const porNome = new Map<string, string>();
+    sheet.rows.forEach((r) => {
+      const nome = chaveNome(texto(r.cells[iNome]));
+      const time = texto(r.cells[iTime]);
+      if (nome && time) porNome.set(nome, time);
+    });
+    return porNome;
+  } catch (e) {
+    console.error("Planilha de times indisponível; vale o Setor do cadastro.", e);
+    return new Map();
+  }
 }
 
 /** Nome do parâmetro sem acento, espaço ou pontuação — "Capacity (%)" → "capacity". */
@@ -314,6 +358,17 @@ async function lerLancamentos(
 /** Lê as fontes e devolve tudo já no formato do dashboard. */
 export async function carregarTimesheet(revalidate = 1800): Promise<PayloadTimesheet> {
   const porPlanilha = await lerColaboradores(revalidate);
+
+  // A planilha de times entra antes dos lançamentos porque é ela que decide o
+  // time gravado em cada linha de hora.
+  const timesPorNome = await lerTimes(revalidate);
+  porPlanilha.forEach((info) => {
+    const time = timesPorNome.get(chaveNome(info.c));
+    if (!time) return;
+    info.time = time;
+    info.timeDaPlanilha = true;
+  });
+
   const [timesPorPasta, timesheet, capacidade, config] = await Promise.all([
     lerTimesPorPasta(revalidate).catch(() => new Map<string, string>()),
     lerLancamentos(porPlanilha, revalidate),
@@ -325,7 +380,7 @@ export async function carregarTimesheet(revalidate = 1800): Promise<PayloadTimes
   // planilha de mais de um ano, vale a mais recente.
   const anoDoTime = new Map<string, number>();
   porPlanilha.forEach((info, planilha) => {
-    if (info.timeDoCadastro) return;
+    if (info.timeDaPlanilha) return;
     const time = timesPorPasta.get(planilha);
     if (!time) return;
     const ano = anoDaPlanilha(planilha);
