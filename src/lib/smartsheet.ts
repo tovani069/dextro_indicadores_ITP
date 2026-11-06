@@ -14,7 +14,7 @@ export const FONTES = {
   /** Área de trabalho "DEXTRO | IT PROTECT TIME SHEET". */
   workspace: process.env.SMARTSHEET_WORKSPACE ?? "5515298200676228",
   /** Relatório "Base todos os lançamentos" — consolida as planilhas de cada colaborador. */
-  lancamentos: process.env.SMARTSHEET_REPORT_LANCAMENTOS ?? "1507227873529732",
+  lancamentos: process.env.SMARTSHEET_REPORT_LANCAMENTOS ?? "4923652371074948",
   /** Planilha "Cadastro de Colaboradores" — nome da planilha → nome, setor e status. */
   colaboradores: process.env.SMARTSHEET_SHEET_COLABORADORES ?? "1249337635983236",
   /** Planilha "Horas disponíveis" — capacidade por colaborador e mês. */
